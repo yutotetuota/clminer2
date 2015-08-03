@@ -184,6 +184,7 @@
       <Optimization Condition="'$(Configuration)'=='Release'">Full</Optimization>
     </ClCompile>
     <ClCompile Include="api.c" />
+    <ClCompile Include="crypto\mshabal.c" />
     <ClCompile Include="sysinfos.c" />
     <ClCompile Include="crypto\aesb.c" />
     <ClCompile Include="crypto\c_blake256.c" />
@@ -284,6 +285,7 @@
     <ClInclude Include="crypto\c_skein.h" />
     <ClInclude Include="crypto\hash-ops.h" />
     <ClInclude Include="crypto\int-util.h" />
+    <ClInclude Include="crypto\mshabal.h" />
     <ClInclude Include="crypto\oaes_lib.h" />
     <ClInclude Include="elist.h" />
     <ClInclude Include="lyra2\Lyra2.h" />
