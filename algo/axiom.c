@@ -293,7 +293,7 @@ int scanhash_axiom(int thr_id, uint32_t *pdata, const uint32_t *ptarget,
 
 	} while (n < max_nonce && !work_restart[thr_id].restart);
 
-	*hashes_done = n - first_nonce + 4;
+	*hashes_done = n - first_nonce;
 	pdata[19] = n;
 	free(memspace);
 	return 0;
@@ -393,7 +393,7 @@ int scanhash_axiom(int thr_id, uint32_t *pdata, const uint32_t *ptarget,
 
 	} while (n < max_nonce && !work_restart[thr_id].restart);
 
-	*hashes_done = n - first_nonce + 8;
+	*hashes_done = n - first_nonce;
 	pdata[19] = n;
 	free(memspace);
 	return 0;
