@@ -93,12 +93,29 @@ typedef struct {
 	unsigned out_size;
 } mshabal_context;
 
+typedef struct {
+	unsigned char buf0[64];
+	unsigned char buf1[64];
+	unsigned char buf2[64];
+	unsigned char buf3[64];
+	unsigned char buf4[64];
+	unsigned char buf5[64];
+	unsigned char buf6[64];
+	unsigned char buf7[64];
+	size_t ptr;
+	mshabal_u32 state[(12 + 16 + 16) * 8];
+	mshabal_u32 Whigh, Wlow;
+	unsigned out_size;
+} mshabal8_context;
+
 /*
  * Initialize a context structure. The output size must be a multiple
  * of 32, between 32 and 512 (inclusive). The output size is expressed
  * in bits.
  */
 void mshabal_init(mshabal_context *sc, unsigned out_size);
+
+void mshabal8_init(mshabal8_context *sc, unsigned out_size);
 
 /*
  * Process some more data bytes; four chunks of data, pointed to by
@@ -114,6 +131,11 @@ void mshabal_init(mshabal_context *sc, unsigned out_size);
  */
 void mshabal(mshabal_context *sc, const void *data0,
 	const void *data1, const void *data2, const void *data3, size_t len);
+
+void mshabal8(mshabal8_context *sc, const void *data0,
+	const void *data1, const void *data2, const void *data3,
+	const void *data4, const void *data5, const void *data6,
+	const void *data7, size_t len);
 
 /*
  * Terminate the Shabal computation incarnated by the provided context
@@ -138,7 +160,10 @@ void mshabal(mshabal_context *sc, const void *data0,
  * function does NOT imply a hidden call to mshabal_init().
  */
 void mshabal_close(mshabal_context *sc,
-	unsigned ub0, unsigned ub1, unsigned ub2, unsigned ub3, unsigned n,
 	void *dst0, void *dst1, void *dst2, void *dst3);
+
+void mshabal8_close(mshabal8_context *sc, void *dst0, 
+	void *dst1, void *dst2, void *dst3, void *dst4, void *dst5, 
+	void *dst6, void *dst7);
 
 #endif
