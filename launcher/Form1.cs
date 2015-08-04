@@ -49,7 +49,7 @@ namespace launcher
             if (Rate > 0 && NHS != null)
             {
                 NHS.accepted_speed *= 1000000; // from GHs to kHs
-                toolStripStatusLabel2.Text = NHS.accepted_speed.ToString("F4");
+                toolStripStatusLabel2.Text = NHS.accepted_speed.ToString("F2");
                 toolStripStatusLabel4.Text = (Rate * NHS.accepted_speed).ToString("F8");
                 toolStripStatusLabel6.Text = NHS.balance.ToString("F8");
             }
