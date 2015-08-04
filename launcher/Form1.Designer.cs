@@ -155,8 +155,8 @@
             // 
             this.toolStripStatusLabel2.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
             this.toolStripStatusLabel2.Name = "toolStripStatusLabel2";
-            this.toolStripStatusLabel2.Size = new System.Drawing.Size(45, 17);
-            this.toolStripStatusLabel2.Text = "0.0000";
+            this.toolStripStatusLabel2.Size = new System.Drawing.Size(31, 17);
+            this.toolStripStatusLabel2.Text = "0.00";
             // 
             // toolStripStatusLabel3
             // 
