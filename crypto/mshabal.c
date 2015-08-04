@@ -18,6 +18,9 @@
 
 #include <stddef.h>
 #include <string.h>
+
+#ifdef __x86_64__
+
 #include <emmintrin.h>
 #include <immintrin.h>
 
@@ -760,3 +763,6 @@ mshabal_close(mshabal_context *sc,
 	for (z = 0; z < out_size_w32; z ++)
 		out[z] = sc->state[off + (z << 2) + 3];
 }
+
+#endif /* __x86_64__ */
+

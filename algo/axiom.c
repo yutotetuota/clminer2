@@ -3,6 +3,8 @@
 #include <string.h>
 #include <stdint.h>
 
+#ifdef __x86_64__
+
 #include "sha3/sph_shabal.h"
 #include "crypto/mshabal.h"
 
@@ -399,3 +401,5 @@ int scanhash_axiom(int thr_id, uint32_t *pdata, const uint32_t *ptarget,
 	return 0;
 #endif
 }
+
+#endif /* __x86_64__ */
