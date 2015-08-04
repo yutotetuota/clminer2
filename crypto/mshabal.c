@@ -34,6 +34,7 @@ typedef mshabal_u32 u32;
 
 #define C32(x)         ((u32)x ## UL)
 
+#ifdef __AVX2__
 static void
 mshabal8_compress(mshabal8_context *sc,
 const unsigned char *buf0, const unsigned char *buf1,
@@ -239,6 +240,8 @@ size_t num)
 #undef PP
 }
 
+#endif /* AVX2 */
+
 static void
 mshabal_compress(mshabal_context *sc,
 	const unsigned char *buf0, const unsigned char *buf1,
@@ -432,6 +435,8 @@ mshabal_compress(mshabal_context *sc,
 #undef PP
 }
 
+#ifdef __AVX2__
+
 void
 mshabal8_init(mshabal8_context *sc, unsigned out_size)
 {
@@ -490,6 +495,8 @@ mshabal8_init(mshabal8_context *sc, unsigned out_size)
 	sc->out_size = out_size;
 }
 
+#endif
+
 void
 mshabal_init(mshabal_context *sc, unsigned out_size)
 {
@@ -527,6 +534,8 @@ mshabal_init(mshabal_context *sc, unsigned out_size)
 	sc->ptr = 0;
 	sc->out_size = out_size;
 }
+
+#ifdef __AVX2__
 
 void
 mshabal8(mshabal8_context *sc, const void *data0, const void *data1,
@@ -601,6 +610,8 @@ const void *data6, const void *data7, size_t len)
 	sc->ptr = len;
 }
 
+#endif
+
 void
 mshabal(mshabal_context *sc, const void *data0, const void *data1,
 	const void *data2, const void *data3, size_t len)
@@ -649,6 +660,8 @@ mshabal(mshabal_context *sc, const void *data0, const void *data1,
 	memcpy(sc->buf3, data3, len);
 	sc->ptr = len;
 }
+
+#ifdef __AVX2__
 
 void
 mshabal8_close(mshabal8_context *sc,
@@ -719,6 +732,8 @@ void *dst4, void *dst5, void *dst6, void *dst7)
 	for (z = 0; z < out_size_w32; z++)
 		out[z] = sc->state[off + (z << 3) + 7];
 }
+
+#endif
 
 void
 mshabal_close(mshabal_context *sc,

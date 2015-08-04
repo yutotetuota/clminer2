@@ -119,7 +119,7 @@ void axiomhash4way(mshabal_context* ctx_org, void* memspace, const void *input1,
 	memcpy(result4, hash4[0xffff], 32);
 }
 
-#ifdef __AVX__
+#ifdef __AVX2__
 void axiomhash8way(mshabal8_context* ctx_org, void* memspace, 
 	const void *input1, void *result1, 
 	const void *input2, void *result2, 
@@ -233,7 +233,7 @@ void axiomhash8way(mshabal8_context* ctx_org, void* memspace,
 int scanhash_axiom(int thr_id, uint32_t *pdata, const uint32_t *ptarget,
 	uint32_t max_nonce, uint64_t *hashes_done)
 {
-#ifndef __AVX__
+#ifndef __AVX2__
 	uint32_t _ALIGN(128) hash64_1[8], hash64_2[8], hash64_3[8], hash64_4[8];
 	uint32_t _ALIGN(128) endiandata_1[20], endiandata_2[20], endiandata_3[20], endiandata_4[20];
 	mshabal_context ctx_org;
