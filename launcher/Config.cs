@@ -14,7 +14,7 @@ namespace launcher
         public string WorkerName;
         public int Location;
         public int Threads;
-        public bool UseAVX;
+        public int Extension;
 #pragma warning restore 649
 
         public static Config ConfigData;
@@ -27,7 +27,7 @@ namespace launcher
             ConfigData.WorkerName = "worker1";
             ConfigData.Location = 0;
             ConfigData.Threads = Environment.ProcessorCount;
-            ConfigData.UseAVX = true;
+            ConfigData.Extension = 0;
 
             try { ConfigData = JsonConvert.DeserializeObject<Config>(File.ReadAllText("config.json")); }
             catch { }

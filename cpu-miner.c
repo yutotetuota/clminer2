@@ -1714,6 +1714,9 @@ static void *miner_thread(void *userdata)
 		int wkcmp_sz = nonce_oft;
 		int rc = 0;
 
+		uint32_t axiom_nonces[8];
+		int axiom_nonces_len;
+
 		if (opt_algo == ALGO_DROP || opt_algo == ALGO_ZR5) {
 			// Duplicates: ignore pok in data[0]
 			wkcmp_sz -= sizeof(uint32_t);
@@ -1920,7 +1923,7 @@ static void *miner_thread(void *userdata)
 					&hashes_done);
 			break;
 		case ALGO_AXIOM:
-			rc = scanhash_axiom(thr_id, work.data, work.target, max_nonce, &hashes_done);
+			rc = scanhash_axiom(thr_id, work.data, work.target, max_nonce, &hashes_done, axiom_nonces, &axiom_nonces_len);
 			break;
 		case ALGO_BLAKE:
 			rc = scanhash_blake(thr_id, work.data, work.target, max_nonce,
@@ -2068,8 +2071,28 @@ static void *miner_thread(void *userdata)
 
 		/* if nonce found, submit work */
 		if (rc && !opt_benchmark) {
-			if (!submit_work(mythr, &work))
-				break;
+			if (opt_algo == ALGO_AXIOM)
+			{
+				uint32_t oldnonce = work.data[19];
+
+				if (axiom_nonces_len > 1)
+					printf("Found multiple shares in single loop: %d\n", axiom_nonces_len);
+
+				/* axiom may find multiple nonces, submit all shares */
+				for (i = 0; i < axiom_nonces_len; i++)
+				{
+					work.data[19] = axiom_nonces[i];
+					if (!submit_work(mythr, &work))
+						break;
+				}
+
+				work.data[19] = oldnonce;
+			}
+			else
+			{
+				if (!submit_work(mythr, &work))
+					break;
+			}
 			// prevent stale work in solo
 			// we can't submit twice a block!
 			if (!have_stratum && !have_longpoll) {

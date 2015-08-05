@@ -3,46 +3,11 @@
 #include <string.h>
 #include <stdint.h>
 
-#include "sha3/sph_shabal.h"
 #include "crypto/mshabal.h"
 
-static __thread uint32_t _ALIGN(128) M[65536][8];
-
-void axiomhash(void *output, const void *input)
-{
-	sph_shabal256_context ctx;
-	const int N = 65536;
-
-	sph_shabal256_init(&ctx);
-	sph_shabal256(&ctx, input, 80);
-	sph_shabal256_close(&ctx, M[0]);
-
-	for(int i = 1; i < N; i++) {
-		//sph_shabal256_init(&ctx);
-		sph_shabal256(&ctx, M[i-1], 32);
-		sph_shabal256_close(&ctx, M[i]);
-	}
-
-	for(int b = 0; b < N; b++)
-	{
-		const int p = b > 0 ? b - 1 : 0xFFFF;
-		const int q = M[p][0] % 0xFFFF;
-		const int j = (b + q) % N;
-
-		//sph_shabal256_init(&ctx);
-#if 0
-		sph_shabal256(&ctx, M[p], 32);
-		sph_shabal256(&ctx, M[j], 32);
-#else
-		uint8_t _ALIGN(128) hash[64];
-		memcpy(hash, M[p], 32);
-		memcpy(&hash[32], M[j], 32);
-		sph_shabal256(&ctx, hash, 64);
+#ifdef __AVX2__
+#define __8WAY__
 #endif
-		sph_shabal256_close(&ctx, M[b]);
-	}
-	memcpy(output, M[N-1], 32);
-}
 
 typedef uint32_t hash_t[8];
 
@@ -117,7 +82,7 @@ void axiomhash4way(mshabal_context* ctx_org, void* memspace, const void *input1,
 	memcpy(result4, hash4[0xffff], 32);
 }
 
-#ifdef __AVX__
+#ifdef __8WAY__
 void axiomhash8way(mshabal8_context* ctx_org, void* memspace, 
 	const void *input1, void *result1, 
 	const void *input2, void *result2, 
@@ -229,78 +194,31 @@ void axiomhash8way(mshabal8_context* ctx_org, void* memspace,
 
 
 int scanhash_axiom(int thr_id, uint32_t *pdata, const uint32_t *ptarget,
-	uint32_t max_nonce, uint64_t *hashes_done)
+	uint32_t max_nonce, uint64_t *hashes_done, uint32_t *nonces, int *nonces_len)
 {
-#ifndef __AVX__
-	uint32_t _ALIGN(128) hash64_1[8], hash64_2[8], hash64_3[8], hash64_4[8];
-	uint32_t _ALIGN(128) endiandata_1[20], endiandata_2[20], endiandata_3[20], endiandata_4[20];
-	mshabal_context ctx_org;
-	void* memspace;
-
-	const uint32_t Htarg = ptarget[7];
-	const uint32_t first_nonce = pdata[19];
-
-	uint32_t n = first_nonce;
-
-	// to avoid small chance of generating duplicate shares
-	max_nonce = (max_nonce / 4) * 4;
-
-	for (int i=0; i < 19; i++) {
-		be32enc(&endiandata_1[i], pdata[i]);
-	}
-
-	memcpy(endiandata_2, endiandata_1, sizeof(endiandata_1));
-	memcpy(endiandata_3, endiandata_1, sizeof(endiandata_1));
-	memcpy(endiandata_4, endiandata_1, sizeof(endiandata_1));
-
-	mshabal_init(&ctx_org, 256);
-	memspace = malloc(65536 * 32 * 4);
-
-	do {
-		be32enc(&endiandata_1[19], n);
-		be32enc(&endiandata_2[19], n + 1);
-		be32enc(&endiandata_3[19], n + 2);
-		be32enc(&endiandata_4[19], n + 3);
-		//axiomhash(hash64_1, endiandata_1);
-		axiomhash4way(&ctx_org, memspace, endiandata_1, hash64_1, endiandata_2, hash64_2, endiandata_3, hash64_3, endiandata_4, hash64_4);
-		if (hash64_1[7] < Htarg && fulltest(hash64_1, ptarget)) {
-			*hashes_done = n - first_nonce + 4;
-			pdata[19] = n;
-			free(memspace);
-			return true;
-		}
-		if (hash64_2[7] < Htarg && fulltest(hash64_2, ptarget)) {
-			*hashes_done = n - first_nonce + 4;
-			pdata[19] = n + 1;
-			free(memspace);
-			return true;
-		}
-		if (hash64_3[7] < Htarg && fulltest(hash64_3, ptarget)) {
-			*hashes_done = n - first_nonce + 4;
-			pdata[19] = n + 2;
-			free(memspace);
-			return true;
-		}
-		if (hash64_4[7] < Htarg && fulltest(hash64_4, ptarget)) {
-			*hashes_done = n - first_nonce + 4;
-			pdata[19] = n + 3;
-			free(memspace);
-			return true;
-		}
-		
-		n += 4;
-		//n++;
-
-	} while (n < max_nonce && !work_restart[thr_id].restart);
-
-	*hashes_done = n - first_nonce;
-	pdata[19] = n;
-	free(memspace);
-	return 0;
+#ifdef __8WAY__
+#define HASHES 8
 #else
-	uint32_t _ALIGN(128) hash64_1[8], hash64_2[8], hash64_3[8], hash64_4[8], hash64_5[8], hash64_6[8], hash64_7[8], hash64_8[8];
-	uint32_t _ALIGN(128) endiandata_1[20], endiandata_2[20], endiandata_3[20], endiandata_4[20], endiandata_5[20], endiandata_6[20], endiandata_7[20], endiandata_8[20];
-	mshabal8_context ctx_org8;
+#define HASHES 4
+#endif
+
+	uint32_t _ALIGN(128) hash64_1[8], hash64_2[8], hash64_3[8], hash64_4[8]
+#ifdef __8WAY__
+		, hash64_5[8], hash64_6[8], hash64_7[8], hash64_8[8]
+#endif
+		;
+
+	uint32_t _ALIGN(128) endiandata_1[20], endiandata_2[20], endiandata_3[20], endiandata_4[20]
+#ifdef __8WAY__
+		, endiandata_5[20], endiandata_6[20], endiandata_7[20], endiandata_8[20]
+#endif
+		;
+
+#ifdef __8WAY__
+	mshabal8_context ctx_org;
+#else
+	mshabal_context ctx_org;
+#endif
 	void* memspace;
 
 	const uint32_t Htarg = ptarget[7];
@@ -308,8 +226,10 @@ int scanhash_axiom(int thr_id, uint32_t *pdata, const uint32_t *ptarget,
 
 	uint32_t n = first_nonce;
 
+	*nonces_len = 0;
+
 	// to avoid small chance of generating duplicate shares
-	max_nonce = (max_nonce / 8) * 8;
+	max_nonce = (max_nonce / HASHES) * HASHES;
 
 	for (int i = 0; i < 19; i++) {
 		be32enc(&endiandata_1[i], pdata[i]);
@@ -318,78 +238,76 @@ int scanhash_axiom(int thr_id, uint32_t *pdata, const uint32_t *ptarget,
 	memcpy(endiandata_2, endiandata_1, sizeof(endiandata_1));
 	memcpy(endiandata_3, endiandata_1, sizeof(endiandata_1));
 	memcpy(endiandata_4, endiandata_1, sizeof(endiandata_1));
+#ifdef __8WAY__
 	memcpy(endiandata_5, endiandata_1, sizeof(endiandata_1));
 	memcpy(endiandata_6, endiandata_1, sizeof(endiandata_1));
 	memcpy(endiandata_7, endiandata_1, sizeof(endiandata_1));
 	memcpy(endiandata_8, endiandata_1, sizeof(endiandata_1));
+#endif
 
-	mshabal8_init(&ctx_org8, 256);
-	memspace = malloc(65536 * 32 * 8);
+#ifdef __8WAY__
+	mshabal8_init(&ctx_org, 256);
+#else
+	mshabal_init(&ctx_org, 256);
+#endif
+	memspace = malloc(65536 * 32 * HASHES);
 
 	do {
 		be32enc(&endiandata_1[19], n);
 		be32enc(&endiandata_2[19], n + 1);
 		be32enc(&endiandata_3[19], n + 2);
 		be32enc(&endiandata_4[19], n + 3);
+#ifdef __8WAY__
 		be32enc(&endiandata_5[19], n + 4);
 		be32enc(&endiandata_6[19], n + 5);
 		be32enc(&endiandata_7[19], n + 6);
 		be32enc(&endiandata_8[19], n + 7);
+#endif
 
-		axiomhash8way(&ctx_org8, memspace, endiandata_1, hash64_1, endiandata_2, hash64_2, endiandata_3, hash64_3, endiandata_4, hash64_4,
+#ifdef __8WAY__
+		axiomhash8way(&ctx_org, memspace, endiandata_1, hash64_1, endiandata_2, hash64_2, endiandata_3, hash64_3, endiandata_4, hash64_4,
 			endiandata_5, hash64_5, endiandata_6, hash64_6, endiandata_7, hash64_7, endiandata_8, hash64_8);
+#else
+		axiomhash4way(&ctx_org, memspace, endiandata_1, hash64_1, endiandata_2, hash64_2, endiandata_3, hash64_3, endiandata_4, hash64_4);
+#endif
 
 		if (hash64_1[7] < Htarg && fulltest(hash64_1, ptarget)) {
-			*hashes_done = n - first_nonce + 8;
+			nonces[(*nonces_len)++] = n;
+		}
+		if (hash64_2[7] < Htarg && fulltest(hash64_2, ptarget)) {
+			nonces[(*nonces_len)++] = n + 1;
+		}
+		if (hash64_3[7] < Htarg && fulltest(hash64_3, ptarget)) {
+			nonces[(*nonces_len)++] = n + 2;
+		}
+		if (hash64_4[7] < Htarg && fulltest(hash64_4, ptarget)) {
+			nonces[(*nonces_len)++] = n + 3;
+		}
+
+#ifdef __8WAY__
+		if (hash64_5[7] < Htarg && fulltest(hash64_5, ptarget)) {
+			nonces[(*nonces_len)++] = n + 4;
+		}
+		if (hash64_6[7] < Htarg && fulltest(hash64_6, ptarget)) {
+			nonces[(*nonces_len)++] = n + 5;
+		}
+		if (hash64_7[7] < Htarg && fulltest(hash64_7, ptarget)) {
+			nonces[(*nonces_len)++] = n + 6;
+		}
+		if (hash64_8[7] < Htarg && fulltest(hash64_8, ptarget)) {
+			nonces[(*nonces_len)++] = n + 7;
+		}
+#endif
+
+		n += HASHES;
+
+		if ((*nonces_len) > 0)
+		{
+			*hashes_done = n - first_nonce;
 			pdata[19] = n;
 			free(memspace);
 			return true;
 		}
-		if (hash64_2[7] < Htarg && fulltest(hash64_2, ptarget)) {
-			*hashes_done = n - first_nonce + 8;
-			pdata[19] = n + 1;
-			free(memspace);
-			return true;
-		}
-		if (hash64_3[7] < Htarg && fulltest(hash64_3, ptarget)) {
-			*hashes_done = n - first_nonce + 8;
-			pdata[19] = n + 2;
-			free(memspace);
-			return true;
-		}
-		if (hash64_4[7] < Htarg && fulltest(hash64_4, ptarget)) {
-			*hashes_done = n - first_nonce + 8;
-			pdata[19] = n + 3;
-			free(memspace);
-			return true;
-		}
-
-		if (hash64_5[7] < Htarg && fulltest(hash64_5, ptarget)) {
-			*hashes_done = n - first_nonce + 8;
-			pdata[19] = n + 4;
-			free(memspace);
-			return true;
-		}
-		if (hash64_6[7] < Htarg && fulltest(hash64_6, ptarget)) {
-			*hashes_done = n - first_nonce + 8;
-			pdata[19] = n + 5;
-			free(memspace);
-			return true;
-		}
-		if (hash64_7[7] < Htarg && fulltest(hash64_7, ptarget)) {
-			*hashes_done = n - first_nonce + 8;
-			pdata[19] = n + 6;
-			free(memspace);
-			return true;
-		}
-		if (hash64_8[7] < Htarg && fulltest(hash64_8, ptarget)) {
-			*hashes_done = n - first_nonce + 8;
-			pdata[19] = n + 7;
-			free(memspace);
-			return true;
-		}
-
-		n += 8;
 
 	} while (n < max_nonce && !work_restart[thr_id].restart);
 
@@ -397,5 +315,4 @@ int scanhash_axiom(int thr_id, uint32_t *pdata, const uint32_t *ptarget,
 	pdata[19] = n;
 	free(memspace);
 	return 0;
-#endif
 }
