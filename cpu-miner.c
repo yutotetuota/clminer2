@@ -1931,7 +1931,8 @@ static void *miner_thread(void *userdata)
 					&hashes_done);
 			break;
 		case ALGO_AXIOM:
-			rc = scanhash_axiom(thr_id, work.data, work.target, max_nonce, &hashes_done, axiom_nonces, &axiom_nonces_len);
+			rc = scanhash_axiom(thr_id, work.data, work.target, max_nonce,
+					&hashes_done, axiom_nonces, &axiom_nonces_len);
 			break;
 		case ALGO_BLAKE:
 			rc = scanhash_blake(thr_id, work.data, work.target, max_nonce,
@@ -2086,28 +2087,10 @@ static void *miner_thread(void *userdata)
 
 		/* if nonce found, submit work */
 		if (rc && !opt_benchmark) {
-			if (opt_algo == ALGO_AXIOM)
-			{
-				uint32_t oldnonce = work.data[19];
 
-				if (axiom_nonces_len > 1)
-					printf("Found multiple shares in single loop: %d\n", axiom_nonces_len);
+			if (!submit_work(mythr, &work))
+				break;
 
-				/* axiom may find multiple nonces, submit all shares */
-				for (i = 0; i < axiom_nonces_len; i++)
-				{
-					work.data[19] = axiom_nonces[i];
-					if (!submit_work(mythr, &work))
-						break;
-				}
-
-				work.data[19] = oldnonce;
-			}
-			else
-			{
-				if (!submit_work(mythr, &work))
-					break;
-			}
 			// prevent stale work in solo
 			// we can't submit twice a block!
 			if (!have_stratum && !have_longpoll) {
@@ -2116,6 +2099,24 @@ static void *miner_thread(void *userdata)
 				g_work_time = 0;
 				pthread_mutex_unlock(&g_work_lock);
 				continue;
+			}
+
+			if (opt_algo == ALGO_AXIOM && rc > 1)
+			{
+				uint32_t oldnonce = work.data[19];
+
+				if (axiom_nonces_len > 1)
+					printf("Found multiple shares in single loop: %d\n", axiom_nonces_len);
+
+				/* axiom may find multiple nonces, submit all shares */
+				for (i = 1; i < axiom_nonces_len; i++)
+				{
+					work.data[19] = axiom_nonces[i];
+					if (!submit_work(mythr, &work))
+						break;
+				}
+
+				work.data[19] = oldnonce;
 			}
 		}
 
@@ -2947,6 +2948,10 @@ int main(int argc, char *argv[]) {
 	pthread_mutex_init(&applog_lock, NULL);
 
 	show_credits();
+
+#ifdef __i386
+printf("OK\n");
+#endif
 
 	rpc_user = strdup("");
 	rpc_pass = strdup("");

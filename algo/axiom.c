@@ -11,12 +11,9 @@
 
 typedef uint32_t hash_t[8];
 
-void printHash(hash_t h)
-{
-	printf("%u-%u-%u-%u-%u-%u-%u-%u\n", h[0], h[1], h[2], h[3], h[4], h[5], h[6], h[7]);
-}
-
-void axiomhash4way(mshabal_context* ctx_org, void* memspace, const void *input1, void *result1, const void *input2, void *result2, const void *input3, void *result3, const void *input4, void *result4)
+#ifdef __i386__
+static void axiomhash4way(mshabal_context* ctx_org, void* memspace, const void *input1, void *result1,
+  const void *input2, void *result2, const void *input3, void *result3, const void *input4, void *result4)
 {
 	mshabal_context ctx_shabal;
 	int i, b;
@@ -70,23 +67,18 @@ void axiomhash4way(mshabal_context* ctx_org, void* memspace, const void *input1,
 		mshabal_close(&ctx_shabal, hash1[b], hash2[b], hash3[b], hash4[b]);
 	}
 
-	//printf("4way:\n");
-	//printHash(hash1[0xffff]);
-	//printHash(hash2[0xffff]);
-	//printHash(hash3[0xffff]);
-	//printHash(hash4[0xffff]);
-
 	memcpy(result1, hash1[0xffff], 32);
 	memcpy(result2, hash2[0xffff], 32);
 	memcpy(result3, hash3[0xffff], 32);
 	memcpy(result4, hash4[0xffff], 32);
 }
+#endif
 
 #ifdef __8WAY__
-void axiomhash8way(mshabal8_context* ctx_org, void* memspace, 
-	const void *input1, void *result1, 
-	const void *input2, void *result2, 
-	const void *input3, void *result3, 
+static void axiomhash8way(mshabal8_context* ctx_org, void* memspace,
+	const void *input1, void *result1,
+	const void *input2, void *result2,
+	const void *input3, void *result3,
 	const void *input4, void *result4,
 	const void *input5, void *result5,
 	const void *input6, void *result6,
@@ -171,16 +163,6 @@ void axiomhash8way(mshabal8_context* ctx_org, void* memspace,
 		mshabal8_close(&ctx_shabal, hash1[b], hash2[b], hash3[b], hash4[b], hash5[b], hash6[b], hash7[b], hash8[b]);
 	}
 
-	//printf("8way:\n");
-	//printHash(hash1[0xffff]);
-	//printHash(hash2[0xffff]);
-	//printHash(hash3[0xffff]);
-	//printHash(hash4[0xffff]);
-	//printHash(hash5[0xffff]);
-	//printHash(hash6[0xffff]);
-	//printHash(hash7[0xffff]);
-	//printHash(hash8[0xffff]);
-
 	memcpy(result1, hash1[0xffff], 32);
 	memcpy(result2, hash2[0xffff], 32);
 	memcpy(result3, hash3[0xffff], 32);
@@ -192,7 +174,7 @@ void axiomhash8way(mshabal8_context* ctx_org, void* memspace,
 }
 #endif
 
-
+#ifdef __i386__
 int scanhash_axiom(int thr_id, uint32_t *pdata, const uint32_t *ptarget,
 	uint32_t max_nonce, uint64_t *hashes_done, uint32_t *nonces, int *nonces_len)
 {
@@ -304,9 +286,9 @@ int scanhash_axiom(int thr_id, uint32_t *pdata, const uint32_t *ptarget,
 		if ((*nonces_len) > 0)
 		{
 			*hashes_done = n - first_nonce;
-			pdata[19] = n;
+			pdata[19] = nonces[0];
 			free(memspace);
-			return true;
+			return (*nonces_len);
 		}
 
 	} while (n < max_nonce && !work_restart[thr_id].restart);
@@ -314,5 +296,8 @@ int scanhash_axiom(int thr_id, uint32_t *pdata, const uint32_t *ptarget,
 	*hashes_done = n - first_nonce;
 	pdata[19] = n;
 	free(memspace);
-	return 0;
+	return (*nonces_len);
 }
+
+#endif /* __i386__ (intel only) */
+

@@ -46,10 +46,9 @@ cpuminer_SOURCES = \
   crypto/c_skein.c \
   crypto/hash.c \
   crypto/aesb.c \
-  crypto/mshabal.c \
   lyra2/Lyra2.c lyra2/Sponge.c \
   algo/animecoin.c \
-  algo/axiom.c \
+  algo/axiom.c algo/axiom-generic.c crypto/mshabal.c \
   algo/blake.c \
   algo/blakecoin.c \
   algo/blake2.c \

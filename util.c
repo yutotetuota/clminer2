@@ -2002,8 +2002,8 @@ void print_hash_tests(void)
 	animehash(&hash[0], &buf[0]);
 	printpfx("anime", hash);
 
-	//axiomhash(&hash[0], &buf[0]);
-	//printpfx("axiom", hash);
+	axiomhash(&hash[0], &buf[0]);
+	printpfx("axiom", hash);
 
 	blakehash(&hash[0], &buf[0]);
 	printpfx("blake", hash);

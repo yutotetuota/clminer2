@@ -15,11 +15,17 @@
 #endif
 
 /* missing arch defines for msvc */
-#if defined(_M_X64)
+#if defined(_M_X64) || defined(_M_AMD64)
 #define __i386__ 1
 #define __x86_64__ 1
-#elif defined(_M_X86)
+#elif defined(_M_X86) || defined(_M_IX86)
 #define __i386__ 1
+#endif
+
+#else
+
+#if !defined(__i386__) && (defined(__i386) || defined(__x86_64__))
+#define __i386__ 1 /* all intel */
 #endif
 
 #endif /* _MSC_VER */
@@ -192,7 +198,7 @@ int scanhash_anime(int thr_id, uint32_t *pdata, const uint32_t *ptarget,
                             uint32_t max_nonce, uint64_t *hashes_done);
 
 int scanhash_axiom(int thr_id, uint32_t *pdata, const uint32_t *ptarget,
-						    uint32_t max_nonce, uint64_t *hashes_done, uint32_t *nonces, int *nonces_len);
+    uint32_t max_nonce, uint64_t *hashes_done, uint32_t *nonces, int *nonces_len);
 
 int scanhash_blake(int thr_id, uint32_t *pdata, const uint32_t *ptarget,
                             uint32_t max_nonce, uint64_t *hashes_done);
@@ -512,7 +518,7 @@ void print_hash_tests(void);
 
 void sha256d(unsigned char *hash, const unsigned char *data, int len);
 void animehash(void *state, const void *input);
-//void axiomhash(void *state, const void *input);
+void axiomhash(void *state, const void *input);
 void blakehash(void *state, const void *input);
 void blakecoinhash(void *state, const void *input);
 void blake2s_hash(void *output, const void *input);
