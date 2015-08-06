@@ -39,8 +39,8 @@ LOCAL_C_INCLUDES := $(cpuminer-src)/compat/bionic \
   $(TARGET_OUT_INTERMEDIATES)/include/libcurl \
   external/openssl/include \
 
-LOCAL_CFLAGS := -std=c99 -Wno-pointer-sign -Wno-missing-field-initializers \
-  -Wno-unused-parameter #-DNOASM
+LOCAL_CFLAGS := -std=gnu99 -Wno-pointer-sign -Wno-missing-field-initializers \
+  -Wno-unused-parameter -Wno-switch #-DNOASM
 LOCAL_CFLAGS += -DVERSION=\"1.2\"
 
 sph_files:=$(call all-c-files-under,sha3)
