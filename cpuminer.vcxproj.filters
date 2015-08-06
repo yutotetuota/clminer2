@@ -269,6 +269,9 @@
     <ClCompile Include="algo\axiom.c">
       <Filter>algo</Filter>
     </ClCompile>
+    <ClCompile Include="algo\axiom-generic.c">
+      <Filter>algo</Filter>
+    </ClCompile>
     <ClCompile Include="crypto\mshabal.c">
       <Filter>crypto</Filter>
     </ClCompile>
