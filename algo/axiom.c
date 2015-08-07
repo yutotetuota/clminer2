@@ -11,7 +11,7 @@
 
 typedef uint32_t hash_t[8];
 
-#ifdef __i386__
+#ifdef __x86_64__
 static void axiomhash4way(mshabal_context* ctx_org, void* memspace, const void *input1, void *result1,
   const void *input2, void *result2, const void *input3, void *result3, const void *input4, void *result4)
 {
@@ -174,7 +174,7 @@ static void axiomhash8way(mshabal8_context* ctx_org, void* memspace,
 }
 #endif
 
-#ifdef __i386__
+#ifdef __x86_64__
 int scanhash_axiom(int thr_id, uint32_t *pdata, const uint32_t *ptarget,
 	uint32_t max_nonce, uint64_t *hashes_done, uint32_t *nonces, int *nonces_len)
 {

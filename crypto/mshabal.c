@@ -21,7 +21,7 @@
 
 #include "miner.h"
 
-#ifdef __i386__
+#ifdef __x86_64__
 
 #include <emmintrin.h>
 #include <immintrin.h>
@@ -781,5 +781,5 @@ mshabal_close(mshabal_context *sc,
 		out[z] = sc->state[off + (z << 2) + 3];
 }
 
-#endif /* __i386__ */
+#endif /* __x86_64__ */
 

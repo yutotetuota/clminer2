@@ -1,3 +1,4 @@
+/* Made for ARM or old x86 */
 #include "miner.h"
 
 #include <string.h>
@@ -37,7 +38,7 @@ void axiomhash(void *output, const void *input)
 	memcpy(output, M[N-1], 32);
 }
 
-#ifndef __i386__ /* intel implementation is in axiom.c */
+#ifndef __x86_64__ /* intel implementation is in axiom.c */
 
 int scanhash_axiom(int thr_id, uint32_t *pdata, const uint32_t *ptarget,
 	uint32_t max_nonce, uint64_t *hashes_done, uint32_t *nonces, int *nonces_len)
@@ -73,4 +74,4 @@ int scanhash_axiom(int thr_id, uint32_t *pdata, const uint32_t *ptarget,
 	return 0;
 }
 
-#endif /* !__i386__ */
+#endif

@@ -24,7 +24,7 @@
 
 #else
 
-#if !defined(__i386__) && (defined(__i386) || defined(__x86_64__))
+#if !defined(__i386__) && defined(__i386)
 #define __i386__ 1 /* all intel */
 #endif
 
