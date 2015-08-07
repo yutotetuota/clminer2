@@ -1,7 +1,8 @@
-#include "miner.h"
+#include <stdio.h>
+#include <inttypes.h>
+#include <unistd.h>
 
-#include <string.h>
-#include <stdint.h>
+#include <miner.h>
 
 #include "crypto/mshabal.h"
 
@@ -9,7 +10,7 @@
 #define __8WAY__
 #endif
 
-typedef uint32_t hash_t[8];
+typedef mshabal_u32 hash_t[8];
 
 #ifdef __x86_64__
 static void axiomhash4way(mshabal_context* ctx_org, void* memspace, const void *input1, void *result1,
