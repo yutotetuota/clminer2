@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <inttypes.h>
 #include <unistd.h>
+#include <string.h>
 
 #include <miner.h>
 
@@ -12,7 +13,7 @@
 
 typedef mshabal_u32 hash_t[8];
 
-#ifdef __x86_64__
+#if defined(__x86_64__) && !defined(__8WAY__)
 static void axiomhash4way(mshabal_context* ctx_org, void* memspace, const void *input1, void *result1,
   const void *input2, void *result2, const void *input3, void *result3, const void *input4, void *result4)
 {
