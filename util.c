@@ -45,6 +45,8 @@
 #include "elist.h"
 
 extern pthread_mutex_t stats_lock;
+extern pthread_mutex_t stratum_sock_lock;
+extern pthread_mutex_t stratum_work_lock;
 
 struct data_buffer {
 	void		*buf;
@@ -437,9 +439,15 @@ static int sockopt_keepalive_cb(void *userdata, curl_socket_t fd,
 }
 #endif
 
-json_t *json_rpc_call(CURL *curl, const char *url,
-		      const char *userpass, const char *rpc_req,
-		      int *curl_err, int flags)
+static bool curl_access_denied(CURL *curl)
+{
+	long errcode = 0;
+	CURLcode c = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &errcode);
+	return (c == CURLE_OK) && (errcode == 401 || errcode == 403);
+}
+
+static json_t *json_rpc_call(CURL *curl, const char *url, const char *userpass, const char *rpc_req,
+	bool longpoll_scan, bool longpoll, bool keepalive, int *curl_err, int flags)
 {
 	json_t *val, *err_val, *res_val;
 	int rc;
@@ -451,8 +459,10 @@ json_t *json_rpc_call(CURL *curl, const char *url,
 	struct curl_slist *headers = NULL;
 	char len_hdr[64];
 	char curl_err_str[CURL_ERROR_SIZE] = { 0 };
-	long timeout = (flags & JSON_RPC_LONGPOLL) ? opt_timeout : 30;
+	//long timeout = (flags & JSON_RPC_LONGPOLL) ? opt_timeout : 30;
+	long timeout = longpoll ? opt_timeout*2 : opt_timeout;
 	struct header_info hi = {0};
+	bool lp_scanning = longpoll_scan && !have_longpoll;
 
 	/* it is assumed that 'curl' is freshly [re]initialized at this pt */
 
@@ -488,7 +498,8 @@ json_t *json_rpc_call(CURL *curl, const char *url,
 		curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
 	}
 #if LIBCURL_VERSION_NUM >= 0x070f06
-	if (flags & JSON_RPC_LONGPOLL)
+	//if (flags & JSON_RPC_LONGPOLL)
+	if (keepalive)
 		curl_easy_setopt(curl, CURLOPT_SOCKOPTFUNCTION, sockopt_keepalive_cb);
 #endif
 	curl_easy_setopt(curl, CURLOPT_POST, 1);
@@ -526,22 +537,30 @@ json_t *json_rpc_call(CURL *curl, const char *url,
 
 	/* If X-Stratum was found, activate Stratum */
 	if (want_stratum && hi.stratum_url &&
-	    !strncasecmp(hi.stratum_url, "stratum+tcp://", 14)) {
+	    !strncasecmp(hi.stratum_url, "stratum+tcp://", 14) &&
+	    !(opt_proxy && opt_proxy_type == CURLPROXY_HTTP))
+	{
 		have_stratum = true;
+		//applog(LOG_DEBUG, "got a stratum url %s", hi.stratum_url);
 		tq_push(thr_info[stratum_thr_id].q, hi.stratum_url);
 		hi.stratum_url = NULL;
 	}
 
 	/* If X-Long-Polling was found, activate long polling */
-	if (!have_longpoll && want_longpoll && hi.lp_path && !have_gbt &&
-	    allow_getwork && !have_stratum) {
+	if (lp_scanning && hi.lp_path && !have_stratum) {
 		have_longpoll = true;
+		//applog(LOG_DEBUG, "got a longpoll url %s", hi.lp_path);
 		tq_push(thr_info[longpoll_thr_id].q, hi.lp_path);
 		hi.lp_path = NULL;
 	}
 
-	if (!all_data.buf) {
-		applog(LOG_ERR, "Empty data received in json_rpc_call.");
+	if (!all_data.buf || !all_data.len) {
+		if (!have_longpoll && !want_longpoll)
+			applog(LOG_ERR, "Empty data received in json_rpc_call.");
+		else if (want_longpoll && curl_access_denied(curl)) {
+			applog(LOG_ERR, "You are not authorized, check your login and password.");
+			goto err_out;
+		}
 		goto err_out;
 	}
 
@@ -614,6 +633,32 @@ err_out:
 	curl_slist_free_all(headers);
 	curl_easy_reset(curl);
 	return NULL;
+}
+
+/* getwork calls with pool pointer (wallet/longpoll pools) */
+json_t *json_rpc_call_pool(CURL *curl, struct pool_infos *pool, const char *req,
+	bool longpoll_scan, bool longpoll, int *curl_err)
+{
+	char userpass[256];
+	// todo, malloc and store that in pool array
+	snprintf(userpass, sizeof(userpass), "%s%c%s", pool->user,
+		strlen(pool->pass)?':':'\0', pool->pass);
+
+	return json_rpc_call(curl, pool->url, userpass, req, longpoll_scan, false, false, curl_err, 0);
+}
+
+/* called only from longpoll thread, we have the lp_url */
+json_t *json_rpc_longpoll(CURL *curl, char *lp_url, struct pool_infos *pool, const char *req, int *curl_err)
+{
+	char userpass[256];
+	snprintf(userpass, sizeof(userpass), "%s%c%s", pool->user,
+		strlen(pool->pass)?':':'\0', pool->pass);
+
+	// on pool rotate by time-limit, this keepalive can be a problem
+	bool keepalive = pool->time_limit == 0 || pool->time_limit > opt_timeout*4;
+	bool needscan = !have_longpoll;
+
+	return json_rpc_call(curl, lp_url, userpass, req, needscan, true, keepalive, curl_err, JSON_RPC_LONGPOLL);
 }
 
 /* used to load a remote config */
@@ -983,9 +1028,9 @@ bool stratum_send_line(struct stratum_ctx *sctx, char *s)
 	if (opt_protocol)
 		applog(LOG_DEBUG, "> %s", s);
 
-	pthread_mutex_lock(&sctx->sock_lock);
+	pthread_mutex_lock(&stratum_sock_lock);
 	ret = send_line(sctx->sock, s);
-	pthread_mutex_unlock(&sctx->sock_lock);
+	pthread_mutex_unlock(&stratum_sock_lock);
 
 	return ret;
 }
@@ -1006,6 +1051,7 @@ static bool socket_full(curl_socket_t sock, int timeout)
 
 bool stratum_socket_full(struct stratum_ctx *sctx, int timeout)
 {
+	if (!sctx->sockbuf) return false;
 	return strlen(sctx->sockbuf) || socket_full(sctx->sock, timeout);
 }
 
@@ -1028,14 +1074,18 @@ static void stratum_buffer_append(struct stratum_ctx *sctx, const char *s)
 char *stratum_recv_line(struct stratum_ctx *sctx)
 {
 	ssize_t len, buflen;
+	int timeout = opt_timeout;
 	char *tok, *sret = NULL;
+
+	if (!sctx->sockbuf)
+		return NULL;
 
 	if (!strstr(sctx->sockbuf, "\n")) {
 		bool ret = true;
 		time_t rstart;
 
 		time(&rstart);
-		if (!socket_full(sctx->sock, 60)) {
+		if (!socket_full(sctx->sock, timeout)) {
 			applog(LOG_ERR, "stratum_recv_line timed out");
 			goto out;
 		}
@@ -1056,7 +1106,7 @@ char *stratum_recv_line(struct stratum_ctx *sctx)
 				}
 			} else
 				stratum_buffer_append(sctx, s);
-		} while (time(NULL) - rstart < 60 && !strstr(sctx->sockbuf, "\n"));
+		} while (time(NULL) - rstart < timeout && !strstr(sctx->sockbuf, "\n"));
 
 		if (!ret) {
 			applog(LOG_ERR, "stratum_recv_line failed");
@@ -1099,13 +1149,13 @@ bool stratum_connect(struct stratum_ctx *sctx, const char *url)
 	CURL *curl;
 	int rc;
 
-	pthread_mutex_lock(&sctx->sock_lock);
+	pthread_mutex_lock(&stratum_sock_lock);
 	if (sctx->curl)
 		curl_easy_cleanup(sctx->curl);
 	sctx->curl = curl_easy_init();
 	if (!sctx->curl) {
 		applog(LOG_ERR, "CURL initialization failed");
-		pthread_mutex_unlock(&sctx->sock_lock);
+		pthread_mutex_unlock(&stratum_sock_lock);
 		return false;
 	}
 	curl = sctx->curl;
@@ -1114,7 +1164,7 @@ bool stratum_connect(struct stratum_ctx *sctx, const char *url)
 		sctx->sockbuf_size = RBUFSIZE;
 	}
 	sctx->sockbuf[0] = '\0';
-	pthread_mutex_unlock(&sctx->sock_lock);
+	pthread_mutex_unlock(&stratum_sock_lock);
 
 	if (url != sctx->url) {
 		free(sctx->url);
@@ -1162,15 +1212,37 @@ bool stratum_connect(struct stratum_ctx *sctx, const char *url)
 	return true;
 }
 
+void stratum_free_job(struct stratum_ctx *sctx)
+{
+	pthread_mutex_lock(&stratum_work_lock);
+	if (sctx->job.job_id) {
+		free(sctx->job.job_id);
+	}
+	if (sctx->job.merkle_count) {
+		for (int i = 0; i < sctx->job.merkle_count; i++) {
+			free(sctx->job.merkle[i]);
+			sctx->job.merkle[i] = NULL;
+		}
+		free(sctx->job.merkle);
+	}
+	free(sctx->job.coinbase);
+	// note: xnonce2 is not allocated
+	memset(&(sctx->job.job_id), 0, sizeof(struct stratum_job));
+	pthread_mutex_unlock(&stratum_work_lock);
+}
+
 void stratum_disconnect(struct stratum_ctx *sctx)
 {
-	pthread_mutex_lock(&sctx->sock_lock);
+	pthread_mutex_lock(&stratum_sock_lock);
 	if (sctx->curl) {
 		curl_easy_cleanup(sctx->curl);
 		sctx->curl = NULL;
 		sctx->sockbuf[0] = '\0';
 	}
-	pthread_mutex_unlock(&sctx->sock_lock);
+	if (sctx->job.job_id) {
+		stratum_free_job(sctx);
+	}
+	pthread_mutex_unlock(&stratum_sock_lock);
 }
 
 static const char *get_stratum_session_id(json_t *val)
@@ -1217,19 +1289,19 @@ static bool stratum_parse_extranonce(struct stratum_ctx *sctx, json_t *params, i
 		goto out;
 	}
 
-	pthread_mutex_lock(&sctx->work_lock);
+	pthread_mutex_lock(&stratum_work_lock);
 	if (sctx->xnonce1)
 		free(sctx->xnonce1);
 	sctx->xnonce1_size = strlen(xnonce1) / 2;
 	sctx->xnonce1 = (uchar*) calloc(1, sctx->xnonce1_size);
 	if (unlikely(!sctx->xnonce1)) {
 		applog(LOG_ERR, "Failed to alloc xnonce1");
-		pthread_mutex_unlock(&sctx->work_lock);
+		pthread_mutex_unlock(&stratum_work_lock);
 		goto out;
 	}
 	hex2bin(sctx->xnonce1, xnonce1, sctx->xnonce1_size);
 	sctx->xnonce2_size = xn2_size;
-	pthread_mutex_unlock(&sctx->work_lock);
+	pthread_mutex_unlock(&stratum_work_lock);
 
 	if (pndx == 0 && opt_debug) /* pool dynamic change */
 		applog(LOG_DEBUG, "Stratum set nonce %s with extranonce2 size=%d",
@@ -1301,12 +1373,12 @@ start:
 	if (opt_debug && sid)
 		applog(LOG_DEBUG, "Stratum session id: %s", sid);
 
-	pthread_mutex_lock(&sctx->work_lock);
+	pthread_mutex_lock(&stratum_work_lock);
 	if (sctx->session_id)
 		free(sctx->session_id);
 	sctx->session_id = sid ? strdup(sid) : NULL;
 	sctx->next_diff = 1.0;
-	pthread_mutex_unlock(&sctx->work_lock);
+	pthread_mutex_unlock(&stratum_work_lock);
 
 	// sid is param 1, extranonce params are 2 and 3
 	if (!stratum_parse_extranonce(sctx, res_val, 1)) {
@@ -1381,9 +1453,9 @@ bool stratum_authorize(struct stratum_ctx *sctx, const char *user, const char *p
 	if (jsonrpc_2) {
 		rpc2_login_decode(val);
 		json_t *job_val = json_object_get(res_val, "job");
-		pthread_mutex_lock(&sctx->work_lock);
+		pthread_mutex_lock(&stratum_work_lock);
 		if(job_val) rpc2_job_decode(job_val, &sctx->work);
-		pthread_mutex_unlock(&sctx->work_lock);
+		pthread_mutex_unlock(&stratum_work_lock);
 	}
 
 	ret = true;
@@ -1485,9 +1557,13 @@ err_out:
 	return false;
 }
 
-json_t* json_rpc2_call_recur(CURL *curl, const char *url, const char *userpass,
+static json_t* json_rpc2_call_recur(CURL *curl, struct pool_infos *pool,
 	json_t *rpc_req, int *curl_err, int flags, int recur)
 {
+	char userpass[256];
+	snprintf(userpass, sizeof(userpass), "%s%c%s", pool->user,
+		strlen(pool->pass)?':':'\0', pool->pass);
+
 	if(recur >= 5) {
 		if(opt_debug)
 			applog(LOG_DEBUG, "Failed to call rpc command after %i tries", recur);
@@ -1505,7 +1581,9 @@ json_t* json_rpc2_call_recur(CURL *curl, const char *url, const char *userpass,
 			json_string_set(auth_id, rpc2_id);
 		}
 	}
-	json_t *res = json_rpc_call(curl, url, userpass, json_dumps(rpc_req, 0),
+	bool keepalive = pool->time_limit == 0 || pool->time_limit > opt_timeout*4;
+	json_t *res = json_rpc_call(curl, pool->url, userpass, json_dumps(rpc_req, 0),
+			false, true, keepalive,
 			curl_err, flags | JSON_RPC_IGNOREERR);
 	if(!res) goto end;
 	json_t *error = json_object_get(res, "error");
@@ -1522,7 +1600,7 @@ json_t* json_rpc2_call_recur(CURL *curl, const char *url, const char *userpass,
 		rpc2_login(curl);
 		sleep(1);
 		pthread_mutex_unlock(&rpc2_login_lock);
-		return json_rpc2_call_recur(curl, url, userpass, rpc_req,
+		return json_rpc2_call_recur(curl, pool, rpc_req,
 				curl_err, flags, recur + 1);
 	} else if(!strcmp(mes, "Low difficulty share") || !strcmp(mes, "Block expired") || !strcmp(mes, "Invalid job id") || !strcmp(mes, "Duplicate share")) {
 		json_t *result = json_object_get(res, "result");
@@ -1538,10 +1616,10 @@ json_t* json_rpc2_call_recur(CURL *curl, const char *url, const char *userpass,
 	return res;
 }
 
-json_t *json_rpc2_call(CURL *curl, const char *url, const char *userpass, const char *rpc_req, int *curl_err, int flags)
+json_t *json_rpc2_call(CURL *curl, struct pool_infos *pool, const char *rpc_req, int *curl_err, int flags)
 {
 	json_t* req_json = JSON_LOADS(rpc_req, NULL);
-	json_t* res = json_rpc2_call_recur(curl, url, userpass, req_json, curl_err, flags, 0);
+	json_t* res = json_rpc2_call_recur(curl, pool, req_json, curl_err, flags, 0);
 	json_decref(req_json);
 	return res;
 }
@@ -1664,7 +1742,7 @@ static bool stratum_notify(struct stratum_ctx *sctx, json_t *params)
 	bool clean, ret = false;
 	int merkle_count, i;
 	json_t *merkle_arr;
-	uchar **merkle;
+	uchar **merkle = NULL;
 
 	job_id = json_string_value(json_array_get(params, 0));
 	prevhash = json_string_value(json_array_get(params, 1));
@@ -1685,7 +1763,8 @@ static bool stratum_notify(struct stratum_ctx *sctx, json_t *params)
 		applog(LOG_ERR, "Stratum notify: invalid parameters");
 		goto out;
 	}
-	merkle = (uchar**) malloc(merkle_count * sizeof(char *));
+	if (merkle_count)
+		merkle = (uchar**) malloc(merkle_count * sizeof(char *));
 	for (i = 0; i < merkle_count; i++) {
 		const char *s = json_string_value(json_array_get(merkle_arr, i));
 		if (!s || strlen(s) != 64) {
@@ -1699,7 +1778,7 @@ static bool stratum_notify(struct stratum_ctx *sctx, json_t *params)
 		hex2bin(merkle[i], s, 32);
 	}
 
-	pthread_mutex_lock(&sctx->work_lock);
+	pthread_mutex_lock(&stratum_work_lock);
 
 	coinb1_size = strlen(coinb1) / 2;
 	coinb2_size = strlen(coinb2) / 2;
@@ -1717,7 +1796,7 @@ static bool stratum_notify(struct stratum_ctx *sctx, json_t *params)
 	sctx->job.job_id = strdup(job_id);
 	hex2bin(sctx->job.prevhash, prevhash, 32);
 
-	sctx->bloc_height = getblocheight(sctx);
+	sctx->job.height = getblocheight(sctx);
 
 	for (i = 0; i < sctx->job.merkle_count; i++)
 		free(sctx->job.merkle[i]);
@@ -1732,7 +1811,7 @@ static bool stratum_notify(struct stratum_ctx *sctx, json_t *params)
 
 	sctx->job.diff = sctx->next_diff;
 
-	pthread_mutex_unlock(&sctx->work_lock);
+	pthread_mutex_unlock(&stratum_work_lock);
 
 	ret = true;
 
@@ -1740,6 +1819,7 @@ out:
 	return ret;
 }
 
+extern volatile time_t g_work_time;
 static bool stratum_set_difficulty(struct stratum_ctx *sctx, json_t *params)
 {
 	double diff;
@@ -1748,14 +1828,16 @@ static bool stratum_set_difficulty(struct stratum_ctx *sctx, json_t *params)
 	if (diff == 0)
 		return false;
 
-	pthread_mutex_lock(&sctx->work_lock);
+	pthread_mutex_lock(&stratum_work_lock);
 	sctx->next_diff = diff;
-	pthread_mutex_unlock(&sctx->work_lock);
+	pthread_mutex_unlock(&stratum_work_lock);
 
 	/* store for api stats */
-	stratum_diff = diff;
-
-	applog(LOG_WARNING, "Stratum difficulty set to %g", diff);
+	if (diff != stratum_diff) {
+		stratum_diff = diff;
+		applog(LOG_WARNING, "Stratum difficulty set to %g", diff);
+		g_work_time = 0;
+	}
 
 	return true;
 }
@@ -1979,6 +2061,11 @@ bool tq_push(struct thread_q *tq, void *data)
 	pthread_mutex_unlock(&tq->mutex);
 
 	return rc;
+}
+
+bool tq_isempty(struct thread_q *tq)
+{
+	return list_empty(&tq->q);
 }
 
 void *tq_pop(struct thread_q *tq, const struct timespec *abstime)

@@ -84,4 +84,12 @@ static __inline char * dirname(char *file) {
 #define MAX_PATH PATH_MAX
 #endif
 
+#ifndef max
+# define max(a, b)  ((a) > (b) ? (a) : (b))
+#endif
+#ifndef min
+# define min(a, b)  ((a) < (b) ? (a) : (b))
+#endif
+
+
 #endif /* __COMPAT_H__ */

@@ -329,6 +329,18 @@ struct work_restart {
 	char padding[128 - sizeof(uint8_t)];
 };
 
+#ifdef HAVE_GETOPT_LONG
+#include <getopt.h>
+#else
+struct option {
+	const char *name;
+	int has_arg;
+	int *flag;
+	int val;
+};
+#endif
+extern int options_count();
+
 extern bool opt_debug;
 extern bool opt_benchmark;
 extern bool opt_protocol;
@@ -399,8 +411,6 @@ extern double net_hashrate;
 
 void applog(int prio, const char *fmt, ...);
 void restart_threads(void);
-extern json_t *json_rpc_call(CURL *curl, const char *url, const char *userpass,
-	const char *rpc_req, int *curl_err, int flags);
 void bin2hex(char *s, const unsigned char *p, size_t len);
 char *abin2hex(const unsigned char *p, size_t len);
 bool hex2bin(unsigned char *p, const char *hexstr, size_t len);
@@ -419,7 +429,10 @@ struct work {
 	uint32_t data[32];
 	uint32_t target[8];
 
-	int height;
+	//double difficulty;
+	uint32_t height;
+	uint8_t pooln;
+
 	char *txs;
 	char *workid;
 
@@ -439,6 +452,7 @@ struct stratum_job {
 	unsigned char version[4];
 	unsigned char nbits[4];
 	unsigned char ntime[4];
+	uint32_t height;
 	bool clean;
 	double diff;
 };
@@ -452,7 +466,6 @@ struct stratum_ctx {
 	curl_socket_t sock;
 	size_t sockbuf_size;
 	char *sockbuf;
-	pthread_mutex_t sock_lock;
 
 	double next_diff;
 
@@ -462,10 +475,73 @@ struct stratum_ctx {
 	size_t xnonce2_size;
 	struct stratum_job job;
 	struct work work;
-	pthread_mutex_t work_lock;
 
-	int bloc_height;
+	struct timeval tv_submit;
+	uint32_t answer_msec;
+	uint8_t pooln;
 };
+
+#define MAX_POOLS 8
+struct pool_infos {
+	uint8_t id;
+#define POOL_UNUSED   0
+#define POOL_GETWORK  1
+#define POOL_STRATUM  2
+#define POOL_LONGPOLL 4
+#define POOL_WALLET   8
+#define POOL_GBT      16
+#define POOL_XMR_RPC2 32
+	uint8_t type;
+#define POOL_ST_DEFINED 1
+#define POOL_ST_VALID 2
+#define POOL_ST_DISABLED 4
+#define POOL_ST_REMOVED 8
+	uint16_t status;
+	char name[64];
+	// credentials
+	char url[256];
+	char short_url[64];
+	char user[128];
+	char pass[128];
+	// config options
+	double max_diff;
+	double max_rate;
+	int time_limit;
+	int scantime;
+	// connection
+	struct stratum_ctx stratum;
+	uint8_t allow_gbt;
+	uint8_t allow_mininginfo;
+	uint16_t check_dups; // 16_t for align
+	int retries;
+	int fail_pause;
+	int timeout;
+	// stats
+	uint32_t work_time;
+	uint32_t wait_time;
+	uint32_t accepted_count;
+	uint32_t rejected_count;
+	uint32_t disconnects;
+};
+
+extern struct pool_infos pools[MAX_POOLS];
+extern int num_pools;
+extern volatile int cur_pooln;
+
+void pool_init_defaults(void);
+void pool_set_creds(int pooln);
+void pool_set_attr(int pooln, const char* key, char* arg);
+bool pool_switch_url(char *params);
+bool pool_switch(int pooln);
+bool pool_switch_next(void);
+int pool_get_first_valid(int startfrom);
+bool parse_pool_array(json_t *obj);
+void pool_dump_infos(void);
+
+json_t * json_rpc_call_pool(CURL *curl, struct pool_infos*,
+	const char *req, bool lp_scan, bool lp, int *err);
+json_t * json_rpc_longpoll(CURL *curl, char *lp_url, struct pool_infos*,
+	const char *req, int *err);
 
 bool stratum_socket_full(struct stratum_ctx *sctx, int timeout);
 bool stratum_send_line(struct stratum_ctx *sctx, char *s);
@@ -475,6 +551,7 @@ void stratum_disconnect(struct stratum_ctx *sctx);
 bool stratum_subscribe(struct stratum_ctx *sctx);
 bool stratum_authorize(struct stratum_ctx *sctx, const char *user, const char *pass);
 bool stratum_handle_method(struct stratum_ctx *sctx, const char *s);
+void stratum_free_job(struct stratum_ctx *sctx);
 
 /* rpc 2.0 (xmr) */
 extern bool jsonrpc_2;
@@ -485,7 +562,7 @@ extern size_t rpc2_bloblen;
 extern uint32_t rpc2_target;
 extern char *rpc2_job_id;
 
-json_t *json_rpc2_call(CURL *curl, const char *url, const char *userpass, const char *rpc_req, int *curl_err, int flags);
+json_t *json_rpc2_call(CURL *curl, struct pool_infos *pool, const char *rpc_req, int *curl_err, int flags);
 bool rpc2_login(CURL *curl);
 bool rpc2_login_decode(const json_t *val);
 bool rpc2_workio_login(CURL *curl);
@@ -500,9 +577,10 @@ bool tq_push(struct thread_q *tq, void *data);
 void *tq_pop(struct thread_q *tq, const struct timespec *abstime);
 void tq_freeze(struct thread_q *tq);
 void tq_thaw(struct thread_q *tq);
+bool tq_isempty(struct thread_q *tq);
 
 void parse_arg(int key, char *arg);
-void parse_config(json_t *config, char *ref);
+void parse_config(json_t *json_obj);
 void proper_exit(int reason);
 
 void applog_hash(void *hash);

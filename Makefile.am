@@ -16,7 +16,7 @@ bin_PROGRAMS	= cpuminer
 dist_man_MANS	= cpuminer.1
 
 cpuminer_SOURCES = \
-  cpu-miner.c util.c \
+  cpu-miner.c pools.c util.c \
   api.c sysinfos.c \
   sha3/sph_keccak.c \
   sha3/sph_hefty1.c \
