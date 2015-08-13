@@ -199,6 +199,8 @@ bool opt_pool_failover = true;
 volatile bool pool_is_switching = false;
 volatile int pool_switch_count = 0;
 bool conditional_pool_rotate = false;
+bool opt_multialgo = false;
+static bool algo_switching = false;
 
 struct stratum_ctx stratum = { 0 };
 pthread_mutex_t stratum_sock_lock;
@@ -477,6 +479,24 @@ static void affine_to_cpu_mask(int id, unsigned long mask) { }
 void get_currentalgo(char* buf, int sz)
 {
 	snprintf(buf, sz, "%s", algo_names[opt_algo]);
+}
+
+bool algo_switch(const char* new_algo)
+{
+	bool ret = false;
+	enum algos prev_algo = opt_algo;
+	char* algo = strdup(new_algo);
+	algo_switching = true;
+	parse_arg('a', algo);
+	free(algo);
+	if (prev_algo != opt_algo) {
+		g_work_time = 0;
+		restart_threads();
+		applog(LOG_BLUE, "Algorithm switch to '%s'", algo_names[opt_algo]);
+		ret = true;
+	}
+	algo_switching = false;
+	return ret;
 }
 
 void proper_exit(int reason)
@@ -2732,11 +2752,10 @@ void parse_arg(int key, char *arg)
 			else
 				applog(LOG_ERR, "Unknown algo parameter '%s'", arg);
 		}
-		if (i == ALGO_COUNT) {
-			show_usage_and_exit(1);
-		}
 		if (!opt_nfactor && opt_algo == ALGO_SCRYPT)
 			opt_nfactor = 9;
+		if (i == ALGO_COUNT && !algo_switching)
+			show_usage_and_exit(1);
 		break;
 	case 'b':
 		p = strstr(arg, ":");

@@ -1922,6 +1922,16 @@ static bool stratum_show_message(struct stratum_ctx *sctx, json_t *id, json_t *p
 	return ret;
 }
 
+extern bool algo_switch(const char* new_algo);
+static bool stratum_set_algorithm(struct stratum_ctx *sctx, json_t *params)
+{
+	json_t *algo = json_array_get(params, 0);
+	if (!algo || !json_is_string(algo))
+		return false;
+	algo_switch(json_string_value(algo));
+	return true;
+}
+
 bool stratum_handle_method(struct stratum_ctx *sctx, const char *s)
 {
 	json_t *val, *id, *params;
@@ -1960,6 +1970,10 @@ bool stratum_handle_method(struct stratum_ctx *sctx, const char *s)
 	}
 	if (!strcasecmp(method, "mining.set_extranonce")) {
 		ret = stratum_parse_extranonce(sctx, params, 0);
+		goto out;
+	}
+	if (!strcasecmp(method, "mining.set_algorithm")) {
+		ret = stratum_set_algorithm(sctx, params);
 		goto out;
 	}
 	if (!strcasecmp(method, "client.reconnect")) {
