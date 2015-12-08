@@ -28,7 +28,7 @@
     <ClCompile Include="sha3\sph_hamsi.c">
       <Filter>sph</Filter>
     </ClCompile>
-    <ClCompile Include="sha3\sph_hamsi_helper.c">
+    <ClCompile Include="sha3\sph_haval.c">
       <Filter>sph</Filter>
     </ClCompile>
     <ClCompile Include="sha3\sph_hefty1.c">
@@ -41,6 +41,9 @@
       <Filter>sph</Filter>
     </ClCompile>
     <ClCompile Include="sha3\sph_luffa.c">
+      <Filter>sph</Filter>
+    </ClCompile>
+    <ClCompile Include="sha3\sph_ripemd.c">
       <Filter>sph</Filter>
     </ClCompile>
     <ClCompile Include="sha3\sph_sha2.c">
@@ -59,6 +62,9 @@
       <Filter>sph</Filter>
     </ClCompile>
     <ClCompile Include="sha3\sph_skein.c">
+      <Filter>sph</Filter>
+    </ClCompile>
+    <ClCompile Include="sha3\sph_tiger.c">
       <Filter>sph</Filter>
     </ClCompile>
     <ClCompile Include="sha3\sph_whirlpool.c">
@@ -115,6 +121,9 @@
     <ClCompile Include="crypto\c_blake256.c">
       <Filter>crypto</Filter>
     </ClCompile>
+    <ClCompile Include="crypto\c_keccak.c">
+      <Filter>crypto</Filter>
+    </ClCompile>
     <ClCompile Include="crypto\aesb.c">
       <Filter>crypto</Filter>
     </ClCompile>
@@ -124,7 +133,7 @@
     <ClCompile Include="crypto\hash.c">
       <Filter>crypto</Filter>
     </ClCompile>
-    <ClCompile Include="crypto\c_keccak.c">
+    <ClCompile Include="crypto\magimath.cpp">
       <Filter>crypto</Filter>
     </ClCompile>
     <ClCompile Include="lyra2\Lyra2.c">
@@ -208,6 +217,9 @@
       <Filter>algo</Filter>
     </ClCompile>
     <ClCompile Include="algo\myr-groestl.c">
+      <Filter>algo</Filter>
+    </ClCompile>
+    <ClCompile Include="algo\m7m.c">
       <Filter>algo</Filter>
     </ClCompile>
     <ClCompile Include="algo\neoscrypt.c">
@@ -329,6 +341,9 @@
     <ClInclude Include="sha3\sph_luffa.h">
       <Filter>sph</Filter>
     </ClInclude>
+    <ClInclude Include="sha3\sph_ripemd.h">
+      <Filter>sph</Filter>
+    </ClInclude>
     <ClInclude Include="sha3\sph_sha2.h">
       <Filter>sph</Filter>
     </ClInclude>
@@ -342,6 +357,9 @@
       <Filter>sph</Filter>
     </ClInclude>
     <ClInclude Include="sha3\sph_skein.h">
+      <Filter>sph</Filter>
+    </ClInclude>
+    <ClInclude Include="sha3\sph_tiger.h">
       <Filter>sph</Filter>
     </ClInclude>
     <ClInclude Include="sha3\sph_types.h">
@@ -414,6 +432,9 @@
       <Filter>crypto</Filter>
     </ClInclude>
     <ClInclude Include="crypto\hash-ops.h">
+      <Filter>crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="crypto\magimath.h">
       <Filter>crypto</Filter>
     </ClInclude>
     <ClInclude Include="lyra2\Lyra2.h">
