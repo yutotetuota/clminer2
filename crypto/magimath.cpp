@@ -43,11 +43,11 @@ static void gauleg(double x1, double x2, double x[], double w[], const int n)
 	}
 }
 
-#define SW_DIVS 5
 static double GaussianQuad_N(double func(const double), const double a2, const double b2, const int NptGQ)
 {
 	double s=0.0;
 #ifdef _MSC_VER
+#define SW_DIVS 23
 	double x[SW_DIVS+1], w[SW_DIVS+1];
 #else
 	double x[NptGQ+1], w[NptGQ+1];

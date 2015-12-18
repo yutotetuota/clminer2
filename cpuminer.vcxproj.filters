@@ -252,6 +252,9 @@
     <ClCompile Include="algo\skein.c">
       <Filter>algo</Filter>
     </ClCompile>
+    <ClCompile Include="algo\velvet.c">
+      <Filter>algo</Filter>
+    </ClCompile>
     <ClCompile Include="algo\x11.c">
       <Filter>algo</Filter>
     </ClCompile>

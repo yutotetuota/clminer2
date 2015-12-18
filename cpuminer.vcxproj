@@ -237,6 +237,7 @@
     <ClCompile Include="algo\sibcoin.c" />
     <ClCompile Include="algo\skein.c" />
     <ClCompile Include="algo\skein2.c" />
+    <ClCompile Include="algo\velvet.c" />
     <ClCompile Include="algo\x11.c" />
     <ClCompile Include="algo\x13.c" />
     <ClCompile Include="algo\x14.c" />
@@ -339,7 +340,6 @@
     <ClInclude Include="sha3\sph_simd.h" />
     <ClInclude Include="sha3\sph_skein.h" />
     <ClInclude Include="sha3\sph_hamsi.h" />
-    <ClInclude Include="sha3\sph_haval.h" />
     <ClInclude Include="sha3\sph_ripemd.h" />
     <ClInclude Include="sha3\sph_tiger.h" />
     <ClInclude Include="sha3\sph_types.h" />

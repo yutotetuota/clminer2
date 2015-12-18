@@ -106,6 +106,7 @@ enum algos {
 	ALGO_SKEIN,       /* Skein */
 	ALGO_SKEIN2,      /* Double skein (Woodcoin) */
 	ALGO_S3,          /* S3 */
+	ALGO_VELVET,      /* VELVET */
 	ALGO_X11,         /* X11 */
 	ALGO_X13,         /* X13 */
 	ALGO_X14,         /* X14 */
@@ -150,6 +151,7 @@ static const char *algo_names[] = {
 	"skein",
 	"skein2",
 	"s3",
+	"velvet",
 	"x11",
 	"x13",
 	"x14",
@@ -293,6 +295,7 @@ Options:\n\
                           skein        Skein+Sha (Skeincoin)\n\
                           skein2       Double Skein (Woodcoin)\n\
                           s3           S3\n\
+                          velvet       Fantom\n\
                           x11          X11\n\
                           x13          X13\n\
                           x14          X14\n\
@@ -555,7 +558,7 @@ static bool work_decode(const json_t *val, struct work *work)
 		goto err_out;
 	}
 
-	if (opt_algo != ALGO_M7M) {
+	if (opt_algo != ALGO_M7M && opt_algo != ALGO_VELVET) {
 		for (i = 0; i < adata_sz; i++)
 			work->data[i] = le32dec(work->data + i);
 		for (i = 0; i < atarget_sz; i++)
@@ -1186,7 +1189,7 @@ static bool submit_upstream_work(CURL *curl, struct work *work)
 		adata_sz = data_size / sizeof(uint32_t);
 
 		/* build hex string */
-		if (opt_algo != ALGO_M7M)
+		if (opt_algo != ALGO_M7M && opt_algo != ALGO_VELVET)
 			for (i = 0; i < adata_sz; i++)
 				le32enc(&work->data[i], work->data[i]);
 
@@ -1647,6 +1650,7 @@ static void stratum_gen_work(struct stratum_ctx *sctx, struct work *work)
 			case ALGO_SCRYPTJANE:
 			case ALGO_NEOSCRYPT:
 			case ALGO_PLUCK:
+			case ALGO_VELVET:
 			case ALGO_YESCRYPT:
 				work_set_target(work, sctx->job.diff / (65536.0 * opt_diff_factor));
 				break;
@@ -1942,9 +1946,11 @@ static void *miner_thread(void *userdata)
 				break;
 			case ALGO_DROP:
 			case ALGO_PLUCK:
+			case ALGO_VELVET:
 			case ALGO_YESCRYPT:
 				max64 = 0x1ff;
 				break;
+			case ALGO_BASTION:
 			case ALGO_LYRA2:
 			case ALGO_LYRA2REV2:
 				max64 = 0xffff;
@@ -2095,6 +2101,9 @@ static void *miner_thread(void *userdata)
 			break;
 		case ALGO_S3:
 			rc = scanhash_s3(thr_id, &work, max_nonce, &hashes_done);
+			break;
+		case ALGO_VELVET:
+			rc = scanhash_velvet(thr_id, &work, max_nonce, &hashes_done);
 			break;
 		case ALGO_X11:
 			rc = scanhash_x11(thr_id, &work, max_nonce, &hashes_done);
