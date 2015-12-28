@@ -98,6 +98,7 @@ enum algos {
 	ALGO_PENTABLAKE,  /* Pentablake */
 	ALGO_PLUCK,       /* Pluck (Supcoin) */
 	ALGO_QUBIT,       /* Qubit */
+	ALGO_RIECOIN,     /* prime numbers riecoin style */
 	ALGO_SCRYPT,      /* scrypt */
 	ALGO_SCRYPTJANE,  /* Chacha */
 	ALGO_SHAVITE3,    /* Shavite3 */
@@ -143,6 +144,7 @@ static const char *algo_names[] = {
 	"pentablake",
 	"pluck",
 	"qubit",
+	"riecoin",
 	"scrypt",
 	"scrypt-jane",
 	"shavite3",
@@ -240,6 +242,9 @@ bool conditional_state[MAX_CPUS] = { 0 };
 double opt_max_temp = 0.0;
 double opt_max_diff = 0.0;
 double opt_max_rate = 0.0;
+// for riecoin
+int opt_sieve_size = 1048576;
+int opt_max_prime = 1048576/2;
 
 uint32_t opt_work_size = 0; /* default */
 char *opt_api_allow = NULL;
@@ -286,6 +291,7 @@ Options:\n\
                           pentablake   Pentablake\n\
                           quark        Quark\n\
                           qubit        Qubit\n\
+                          riecoin      Primes numbers\n\
                           scrypt       scrypt(1024, 1, 1) (default)\n\
                           scrypt:N     scrypt(N, 1, 1)\n\
                           scrypt-jane:N (with N factor from 4 to 30)\n\
@@ -338,6 +344,8 @@ Options:\n\
   -S, --syslog          use system log for output messages\n"
 #endif
 "\
+      --max-prime=N     max prime number for sieve in riecoin primes (default: 524288)\n\
+      --sieve=N         sieve size for riecoin primes (default: 1048576)\n\
   -B, --background      run the miner in the background\n\
       --benchmark       run in offline benchmark mode\n\
       --cputest         debug hashes from cpu algorithms\n\
@@ -399,6 +407,8 @@ static struct option const options[] = {
 	{ "randomize", 0, NULL, 1024 },
 	{ "scantime", 1, NULL, 's' },
 	{ "show-diff", 0, NULL, 1013 },
+	{ "max-prime", 1, NULL, 1040 },
+	{ "sieve", 1, NULL, 1041 },
 #ifdef HAVE_SYSLOG_H
 	{ "syslog", 0, NULL, 'S' },
 #endif
@@ -549,12 +559,31 @@ static bool work_decode(const json_t *val, struct work *work)
 		return rpc2_job_decode(val, work);
 	}
 
-	if (unlikely(!jobj_binary(val, "data", work->data, data_size))) {
-		applog(LOG_ERR, "JSON invalid data");
+	if (opt_algo == ALGO_RIECOIN) {
+		target_size = atarget_sz = 0;
+		json_t *tmp = json_object_get(val, "primes");
+		if (unlikely(!tmp)) {
+			applog(LOG_ERR, "JSON primes not found");
+			goto err_out;
+		}
+		work->target[7] = json_integer_value(tmp);
+		if (unlikely(work->target[7] == 0)) {
+			applog(LOG_ERR, "JSON invalid primes");
+			goto err_out;
+		}
+		tmp = json_object_get(val, "diff");
+		if (tmp) {
+			net_diff = work->targetdiff = atoi(json_string_value(tmp));
+		}
+	}
+
+	if (target_size && !jobj_binary(val, "target", work->target, target_size)) {
+		applog(LOG_ERR, "JSON invalid target");
 		goto err_out;
 	}
-	if (unlikely(!jobj_binary(val, "target", work->target, target_size))) {
-		applog(LOG_ERR, "JSON invalid target");
+
+	if (unlikely(!jobj_binary(val, "data", work->data, data_size))) {
+		applog(LOG_ERR, "JSON invalid data");
 		goto err_out;
 	}
 
@@ -568,7 +597,8 @@ static bool work_decode(const json_t *val, struct work *work)
 	if ((opt_showdiff || opt_max_diff > 0.) && !allow_mininginfo)
 		calc_network_diff(work);
 
-	work->targetdiff = target_to_diff(work->target);
+	if (target_size)
+		work->targetdiff = target_to_diff(work->target);
 
 	// for api stats, on longpoll pools
 	stratum_diff = work->targetdiff;
@@ -977,6 +1007,12 @@ static int share_result(int result, struct work *work, const char *reason)
 	case ALGO_SCRYPTJANE:
 		sprintf(s, hashrate >= 1e6 ? "%.0f" : "%.2f", hashrate);
 		applog(LOG_NOTICE, "accepted: %lu/%lu (%s), %s H/s %s",
+			accepted_count, accepted_count + rejected_count,
+			suppl, s, flag);
+		break;
+	case ALGO_RIECOIN:
+		sprintf(s, hashrate >= 1e9 ? "%.0f" : "%.2f", hashrate / 1e6);
+		applog(LOG_NOTICE, "accepted: %lu/%lu (%s), %s MN/s %s",
 			accepted_count, accepted_count + rejected_count,
 			suppl, s, flag);
 		break;
@@ -1503,9 +1539,16 @@ static bool get_work(struct thr_info *thr, struct work *work)
 		//memset(work->data, 0x55, 76);
 		work->data[17] = swab32(ts);
 		memset(work->data + 19, 0x00, 52);
-		work->data[20] = 0x80000000;
-		work->data[31] = 0x00000280;
-		memset(work->target, 0x00, sizeof(work->target));
+		if (opt_algo == ALGO_RIECOIN) {
+			work->data[RIECOIN_DATA_DIFF] = swab32(0x03000000 + 304);
+			work->target[7] = 6; // primes
+			work->data[28] = 0x80000000;
+			work->data[31] = 0x00000380; // 112 * 8
+		} else {
+			work->data[20] = 0x80000000;
+			work->data[31] = 0x00000280;
+			memset(work->target, 0x00, sizeof(work->target));
+		}
 		return true;
 	}
 
@@ -1626,12 +1669,21 @@ static void stratum_gen_work(struct stratum_ctx *sctx, struct work *work)
 				work->data[i] = swab32(work->data[i]);
 		}
 
-		if (opt_algo == ALGO_M7M) {
+		switch (opt_algo) {
+		case ALGO_M7M:
 			for (i = 0; i < 32; i++)
 				be32enc(&work->data[i], work->data[i]);
-		} else {
+			break;
+		case ALGO_RIECOIN:
+			work->data[RIECOIN_DATA_DIFF] = le32dec(sctx->job.nbits);
+			work->data[RIECOIN_DATA_NTIME] = le32dec(sctx->job.ntime);
+			work->targetdiff = sctx->job.diff;
+			work->data[31] = 0x00000280; // should be 0x00000380
+			break;
+		default:
 			work->data[20] = 0x80000000;
 			work->data[31] = 0x00000280;
+			break;
 		}
 
 		pthread_mutex_unlock(&sctx->work_lock);
@@ -1663,6 +1715,9 @@ static void stratum_gen_work(struct stratum_ctx *sctx, struct work *work)
 			case ALGO_KECCAK:
 			case ALGO_LYRA2:
 				work_set_target(work, sctx->job.diff / (128.0 * opt_diff_factor));
+				break;
+			case ALGO_RIECOIN:
+				work->target[7] = sctx->job.diff;
 				break;
 			default:
 				work_set_target(work, sctx->job.diff / opt_diff_factor);
@@ -1732,9 +1787,11 @@ static void *miner_thread(void *userdata)
 	int thr_id = mythr->id;
 	struct work work;
 	uint32_t max_nonce;
-	uint32_t end_nonce = 0xffffffffU / opt_n_threads * (thr_id + 1) - 0x20;
-	time_t firstwork_time = 0;
+	uint64_t max_nonce64;
+	uint64_t end_nonce = 0xffffffffU / opt_n_threads * (thr_id + 1) + thr_id - 0x20;
+	time_t firstwork_time = 0, start_time = time(NULL);
 	unsigned char *scratchbuf = NULL;
+	int primes = 0;
 	char s[16];
 	int i;
 
@@ -1810,6 +1867,16 @@ static void *miner_thread(void *userdata)
 		}
 	}
 
+	else if (opt_algo == ALGO_RIECOIN) {
+		end_nonce = (0x7fffffffffffULL+1) / opt_n_threads * (thr_id + 1) - 1;
+		scratchbuf = malloc(opt_sieve_size/8);
+		if (!scratchbuf) {
+			applog(LOG_ERR, "riecoin buffer allocation failed");
+			pthread_mutex_lock(&applog_lock);
+			exit(1);
+		}
+	}
+
 	while (1) {
 		uint64_t hashes_done;
 		struct timeval tv_start, tv_end, diff;
@@ -1830,6 +1897,8 @@ static void *miner_thread(void *userdata)
 		}
 
 		uint32_t *nonceptr = (uint32_t*) (((char*)work.data) + nonce_oft);
+		uint64_t *nonceptr64 = (uint64_t*) &work.data[RIECOIN_DATA_NONCE];
+		bool overflow;
 
 		if (have_stratum) {
 			while (!jsonrpc_2 && time(NULL) >= g_work_time + 120)
@@ -1841,8 +1910,13 @@ static void *miner_thread(void *userdata)
 			}
 
 			pthread_mutex_lock(&g_work_lock);
+			overflow = (*nonceptr) >= end_nonce;
+			if (opt_algo == ALGO_RIECOIN) {
+				overflow = nonceptr64[0] == UINT64_MAX;
+				if (overflow) stratum_gen_work(&stratum, &g_work);
+			}
 
-			if ( (*nonceptr) >= end_nonce
+			if ( overflow
 				&& !( memcmp(&work.data[wkcmp_offset], &g_work.data[wkcmp_offset], wkcmp_sz) ||
 				 jsonrpc_2 ? memcmp(((uint8_t*) work.data) + 43, ((uint8_t*) g_work.data) + 43, 33) : 0))
 			{
@@ -1870,12 +1944,27 @@ static void *miner_thread(void *userdata)
 				continue;
 			}
 		}
+
+		if (opt_algo == ALGO_RIECOIN) {
+			wkcmp_offset = 0;
+			wkcmp_sz = 76;
+			if (memcmp(work.data, &g_work.data[wkcmp_offset], wkcmp_sz)) {
+				work_free(&work);
+				work_copy(&work, &g_work);
+				*nonceptr64 = 0x7fffffffffffULL / opt_n_threads * thr_id + thr_id;
+				if (opt_randomize)
+					nonceptr64[0] += ((rand()*4) & UINT64_MAX) / opt_n_threads;
+			} else
+				nonceptr64[0]++;
+		}
+		else
+		/* general case */
 		if (memcmp(&work.data[wkcmp_offset], &g_work.data[wkcmp_offset], wkcmp_sz) ||
 			jsonrpc_2 ? memcmp(((uint8_t*) work.data) + 43, ((uint8_t*) g_work.data) + 43, 33) : 0)
 		{
 			work_free(&work);
 			work_copy(&work, &g_work);
-			nonceptr = (uint32_t*) (((char*)work.data) + nonce_oft);
+			//nonceptr = (uint32_t*) (((char*)work.data) + nonce_oft);
 			*nonceptr = 0xffffffffU / opt_n_threads * thr_id;
 			if (opt_randomize)
 				nonceptr[0] += ((rand()*4) & UINT32_MAX) / opt_n_threads;
@@ -1982,15 +2071,26 @@ static void *miner_thread(void *userdata)
 			case ALGO_SKEIN2:
 				max64 = 0x7ffffLL;
 				break;
+			case ALGO_RIECOIN:
+				max64 = 2LL*opt_sieve_size;
+				break;
 			default:
 				max64 = 0x1fffffLL;
 				break;
 			}
 		}
+
 		if ((*nonceptr) + max64 > end_nonce)
 			max_nonce = end_nonce;
 		else
 			max_nonce = (*nonceptr) + (uint32_t) max64;
+
+		if (opt_algo == ALGO_RIECOIN) {
+			if (nonceptr64[0] + max64 > end_nonce)
+				max_nonce64 = end_nonce;
+			else
+				max_nonce64 = nonceptr64[0] + (uint64_t) max64;
+		}
 
 		hashes_done = 0;
 		gettimeofday((struct timeval *) &tv_start, NULL);
@@ -2084,6 +2184,10 @@ static void *miner_thread(void *userdata)
 		case ALGO_SCRYPTJANE:
 			rc = scanhash_scryptjane(opt_scrypt_n, thr_id, &work, max_nonce, &hashes_done);
 			break;
+		case ALGO_RIECOIN:
+			rc = scanhash_riecoin(thr_id, &work, max_nonce64, &hashes_done,
+				(uint32_t*) scratchbuf); /* Sieves */
+			break;
 		case ALGO_SHAVITE3:
 			rc = scanhash_ink(thr_id, &work, max_nonce, &hashes_done);
 			break;
@@ -2146,9 +2250,12 @@ static void *miner_thread(void *userdata)
 			case ALGO_SCRYPTJANE:
 				applog(LOG_INFO, "CPU #%d: %.2f H/s", thr_id, thr_hashrates[thr_id]);
 				break;
+			case ALGO_RIECOIN:
+				sprintf(s, thr_hashrates[thr_id] >= 1e9 ? "%.0f" : "%.2f", thr_hashrates[thr_id] / 1e6);
+				applog(LOG_INFO, "CPU #%d: %s MN/s", thr_id, s);
+				break;
 			default:
-				sprintf(s, thr_hashrates[thr_id] >= 1e6 ? "%.0f" : "%.2f",
-						thr_hashrates[thr_id] / 1e3);
+				sprintf(s, thr_hashrates[thr_id] >= 1e6 ? "%.0f" : "%.2f", thr_hashrates[thr_id] / 1e3);
 				applog(LOG_INFO, "CPU #%d: %s kH/s", thr_id, s);
 				break;
 			}
@@ -2165,6 +2272,13 @@ static void *miner_thread(void *userdata)
 				case ALGO_SCRYPTJANE:
 					sprintf(s, "%.3f", hashrate);
 					applog(LOG_NOTICE, "Total: %s H/s", s);
+					break;
+				case ALGO_RIECOIN:
+					sprintf(s, hashrate >= 1e6 ? "%.0f" : "%.2f", hashrate / 1000);
+					applog(LOG_INFO, "Total: %s knumbers/s", s);
+					applog(LOG_INFO, "Expected average time to block: %f",
+						riecoin_time_to_block(hashrate, swab32(work.data[RIECOIN_DATA_DIFF]), work.target[7]) );
+					applog(LOG_NOTICE, "accepted: %u in %d seconds", accepted_count, time(NULL) - start_time);
 					break;
 				default:
 					sprintf(s, hashrate >= 1e6 ? "%.0f" : "%.2f", hashrate / 1000);
@@ -2193,6 +2307,8 @@ static void *miner_thread(void *userdata)
 	}
 
 out:
+	if (scratchbuf) free(scratchbuf);
+
 	tq_freeze(mythr->q);
 
 	return NULL;
@@ -2615,6 +2731,8 @@ void parse_arg(int key, char *arg)
 				i = opt_algo = ALGO_LYRA2;
 			else if (!strcasecmp("lyra2v2", arg))
 				i = opt_algo = ALGO_LYRA2REV2;
+			else if (!strcasecmp("primesr", arg))
+				i = opt_algo = ALGO_RIECOIN;
 			else if (!strcasecmp("scryptjane", arg))
 				i = opt_algo = ALGO_SCRYPTJANE;
 			else if (!strcasecmp("sibcoin", arg))
@@ -2911,6 +3029,12 @@ void parse_arg(int key, char *arg)
 		if (v < 0 || v > 5)	/* sanity check */
 			show_usage_and_exit(1);
 		opt_priority = v;
+		break;
+	case 1040: // max-prime (riecoin)
+		opt_max_prime = atoi(arg);
+		break;
+	case 1041: // sieve (riecoin)
+		opt_sieve_size = atoi(arg);
 		break;
 	case 1060: // max-temp
 		d = atof(arg);
@@ -3226,6 +3350,12 @@ int main(int argc, char *argv[]) {
 	if (thread_create(thr, workio_thread)) {
 		applog(LOG_ERR, "work thread create failed");
 		return 1;
+	}
+
+	if (opt_algo == ALGO_RIECOIN) {
+		if (initPrimeTable())
+			return 1;
+		opt_showdiff = false;
 	}
 
 	/* ESET-NOD32 Detects these 2 thread_create... */

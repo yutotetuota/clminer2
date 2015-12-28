@@ -218,6 +218,7 @@ int scanhash_pluck(int thr_id, struct work *work, uint32_t max_nonce, uint64_t *
 int scanhash_quark(int thr_id, struct work *work, uint32_t max_nonce, uint64_t *hashes_done);
 void init_quarkhash_contexts();
 int scanhash_qubit(int thr_id, struct work *work, uint32_t max_nonce, uint64_t *hashes_done);
+int scanhash_riecoin(int thr_id, struct work *work, uint64_t max_nonce, uint64_t *hashes_done, uint32_t *pSieve);
 int scanhash_sha256d(int thr_id, struct work *work, uint32_t max_nonce, uint64_t *hashes_done);
 unsigned char *scrypt_buffer_alloc(int N);
 int scanhash_scrypt(int thr_id, struct work *work, uint32_t max_nonce, uint64_t *hashes_done,
@@ -461,6 +462,18 @@ void applog_hash(void *hash);
 void format_hashrate(double hashrate, char *output);
 void print_hash_tests(void);
 
+/* for riecoin */
+extern int opt_sieve_size;
+extern int opt_max_prime;
+
+#define RIECOIN_DATA_DIFF  17
+#define RIECOIN_DATA_NTIME 18
+#define RIECOIN_DATA_NONCE 20
+
+extern int initPrimeTable(void);
+extern double riecoin_time_to_block(double hashrate, uint32_t compactBits, int primes);
+
+/* --cputest */
 void sha256d(unsigned char *hash, const unsigned char *data, int len);
 void axiomhash(void *state, const void *input);
 void bastionhash(void *output, const void *input);
