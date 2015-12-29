@@ -524,14 +524,27 @@ static inline void work_copy(struct work *dest, const struct work *src)
 	}
 }
 
+static inline uint32_t calc_network_diff_rie(struct work *work)
+{
+	const uint32_t nbits = swab32(work->data[RIECOIN_DATA_DIFF]);
+	const uint32_t bits = (nbits & 0xffffff);
+	const int16_t shift = (swab32(nbits) & 0xff)*4;
+	return bits >> shift;
+}
+
 /* compute nbits to get the network diff */
 static void calc_network_diff(struct work *work)
 {
 	// sample for diff 43.281 : 1c05ea29
 	// todo: endian reversed on longpoll could be zr5 specific...
 	uint32_t nbits = have_longpoll ? work->data[18] : swab32(work->data[18]);
-	uint32_t bits = (nbits & 0xffffff);
-	int16_t shift = (swab32(nbits) & 0xff); // 0x1c = 28
+	const uint32_t bits = (nbits & 0xffffff);
+	const int16_t shift = (swab32(nbits) & 0xff); // 0x1c = 28
+
+	if (opt_algo == ALGO_RIECOIN) {
+		net_diff = calc_network_diff_rie(work);
+		return;
+	}
 
 	double d = (double)0x0000ffff / (double)bits;
 
@@ -1011,10 +1024,9 @@ static int share_result(int result, struct work *work, const char *reason)
 			suppl, s, flag);
 		break;
 	case ALGO_RIECOIN:
-		sprintf(s, hashrate >= 1e9 ? "%.0f" : "%.2f", hashrate / 1e6);
-		applog(LOG_NOTICE, "accepted: %lu/%lu (%s), %s MN/s %s",
+		applog(LOG_NOTICE, "accepted: %lu/%lu (%s), %.2f T/s %s",
 			accepted_count, accepted_count + rejected_count,
-			suppl, s, flag);
+			suppl, hashrate, flag);
 		break;
 	default:
 		sprintf(s, hashrate >= 1e6 ? "%.0f" : "%.2f", hashrate / 1000.0);
@@ -1657,8 +1669,15 @@ static void stratum_gen_work(struct stratum_ctx *sctx, struct work *work)
 			work->data[1 + i] = le32dec((uint32_t *) sctx->job.prevhash + i);
 		for (i = 0; i < 8; i++)
 			work->data[9 + i] = be32dec((uint32_t *) merkle_root + i);
-		work->data[17] = le32dec(sctx->job.ntime);
-		work->data[18] = le32dec(sctx->job.nbits);
+
+		if (opt_algo == ALGO_RIECOIN) {
+			work->data[RIECOIN_DATA_DIFF] = le32dec(sctx->job.nbits);
+			work->data[RIECOIN_DATA_NTIME] = le32dec(sctx->job.ntime);
+			//work->data[31] = 0x00000380;
+		} else {
+			work->data[17] = le32dec(sctx->job.ntime);
+			work->data[18] = le32dec(sctx->job.nbits);
+		}
 
 		if (opt_showdiff || opt_max_diff > 0.)
 			calc_network_diff(work);
@@ -1675,10 +1694,7 @@ static void stratum_gen_work(struct stratum_ctx *sctx, struct work *work)
 				be32enc(&work->data[i], work->data[i]);
 			break;
 		case ALGO_RIECOIN:
-			work->data[RIECOIN_DATA_DIFF] = le32dec(sctx->job.nbits);
-			work->data[RIECOIN_DATA_NTIME] = le32dec(sctx->job.ntime);
-			work->targetdiff = sctx->job.diff;
-			work->data[31] = 0x00000280; // should be 0x00000380
+			work->data[31] = 0x00000280;
 			break;
 		default:
 			work->data[20] = 0x80000000;
@@ -1791,7 +1807,6 @@ static void *miner_thread(void *userdata)
 	uint64_t end_nonce = 0xffffffffU / opt_n_threads * (thr_id + 1) + thr_id - 0x20;
 	time_t firstwork_time = 0, start_time = time(NULL);
 	unsigned char *scratchbuf = NULL;
-	int primes = 0;
 	char s[16];
 	int i;
 
@@ -1914,6 +1929,7 @@ static void *miner_thread(void *userdata)
 			if (opt_algo == ALGO_RIECOIN) {
 				overflow = nonceptr64[0] == UINT64_MAX;
 				if (overflow) stratum_gen_work(&stratum, &g_work);
+				overflow = false;
 			}
 
 			if ( overflow
@@ -1946,7 +1962,6 @@ static void *miner_thread(void *userdata)
 		}
 
 		if (opt_algo == ALGO_RIECOIN) {
-			wkcmp_offset = 0;
 			wkcmp_sz = 76;
 			if (memcmp(work.data, &g_work.data[wkcmp_offset], wkcmp_sz)) {
 				work_free(&work);
@@ -2035,6 +2050,7 @@ static void *miner_thread(void *userdata)
 				break;
 			case ALGO_DROP:
 			case ALGO_PLUCK:
+			case ALGO_RIECOIN:
 			case ALGO_VELVET:
 			case ALGO_YESCRYPT:
 				max64 = 0x1ff;
@@ -2071,9 +2087,6 @@ static void *miner_thread(void *userdata)
 			case ALGO_SKEIN2:
 				max64 = 0x7ffffLL;
 				break;
-			case ALGO_RIECOIN:
-				max64 = 2LL*opt_sieve_size;
-				break;
 			default:
 				max64 = 0x1fffffLL;
 				break;
@@ -2086,6 +2099,7 @@ static void *miner_thread(void *userdata)
 			max_nonce = (*nonceptr) + (uint32_t) max64;
 
 		if (opt_algo == ALGO_RIECOIN) {
+			max64 *= opt_sieve_size * 4;
 			if (nonceptr64[0] + max64 > end_nonce)
 				max_nonce64 = end_nonce;
 			else
@@ -2185,8 +2199,7 @@ static void *miner_thread(void *userdata)
 			rc = scanhash_scryptjane(opt_scrypt_n, thr_id, &work, max_nonce, &hashes_done);
 			break;
 		case ALGO_RIECOIN:
-			rc = scanhash_riecoin(thr_id, &work, max_nonce64, &hashes_done,
-				(uint32_t*) scratchbuf); /* Sieves */
+			rc = scanhash_riecoin(thr_id, &work, max_nonce64, &hashes_done,	(uint32_t*) scratchbuf); /* Sieves */
 			break;
 		case ALGO_SHAVITE3:
 			rc = scanhash_ink(thr_id, &work, max_nonce, &hashes_done);
@@ -2251,8 +2264,8 @@ static void *miner_thread(void *userdata)
 				applog(LOG_INFO, "CPU #%d: %.2f H/s", thr_id, thr_hashrates[thr_id]);
 				break;
 			case ALGO_RIECOIN:
-				sprintf(s, thr_hashrates[thr_id] >= 1e9 ? "%.0f" : "%.2f", thr_hashrates[thr_id] / 1e6);
-				applog(LOG_INFO, "CPU #%d: %s MN/s", thr_id, s);
+				sprintf(s, thr_hashrates[thr_id] >= 1e3 ? "%.0f" : "%.2f", thr_hashrates[thr_id]);
+				applog(LOG_INFO, "CPU #%d: %s T/s", thr_id, s);
 				break;
 			default:
 				sprintf(s, thr_hashrates[thr_id] >= 1e6 ? "%.0f" : "%.2f", thr_hashrates[thr_id] / 1e3);
@@ -3355,7 +3368,6 @@ int main(int argc, char *argv[]) {
 	if (opt_algo == ALGO_RIECOIN) {
 		if (initPrimeTable())
 			return 1;
-		opt_showdiff = false;
 	}
 
 	/* ESET-NOD32 Detects these 2 thread_create... */

@@ -60,7 +60,6 @@ const unsigned int startingPrimeIndex = 4;
 const unsigned int fixedMod = 2310;
 const unsigned int fixedModDelta = 97;
 const unsigned int startingPrimeIndex = 5;
-const unsigned int efficiencyDivisor = 11-6;
 #endif
 
 static int isPrime( int candidate )
@@ -129,7 +128,8 @@ static int single_modinv (int a, int modulus)
 											q = dividend/divisor;
 											rem = dividend - q * divisor;
 											q *= ps1;
-										}}}}}}}}}
+		}}}}}}}}}
+
 		q += ps2;
 		parity = ~parity;
 		dividend = divisor;
@@ -353,7 +353,7 @@ double riecoin_time_to_block( double hashrate, uint32_t compactBits, int primes 
 #define MR_TESTS 1
 
 
-int scanhash_riecoin(int thr_id, struct work *work, uint64_t max_nonce, uint64_t *hashes_done, uint32_t *pSieve)
+int scanhash_riecoin(int thr_id, struct work *work, uint64_t max_nonce, uint64_t *tests_done, uint32_t *pSieve)
 {
 	uint32_t _ALIGN(64) hash[8];
 	uint32_t *pdata = work->data;
@@ -362,7 +362,7 @@ int scanhash_riecoin(int thr_id, struct work *work, uint64_t max_nonce, uint64_t
 	uint64_t n = *((uint64_t*) &work->data[RIECOIN_DATA_NONCE]);
 	const uint64_t first_nonce = n;
 	mpz_t b;
-	int sieveIndex, tests;
+	int sieveIndex, tests = 0;
 	struct sieveData mySieve;
 	mySieve.pSieve = pSieve;
 
@@ -398,7 +398,6 @@ int scanhash_riecoin(int thr_id, struct work *work, uint64_t max_nonce, uint64_t
 	mpz_add_ui( b, b, n );
 
 	do {
-		tests = 0;
 
 		init(&mySieve, b);
 		sieveIndex = 0;
@@ -407,29 +406,29 @@ int scanhash_riecoin(int thr_id, struct work *work, uint64_t max_nonce, uint64_t
 		{
 			tests++;
 
-			mpz_set( bnTarget, b );
-			mpz_add_ui( bnTarget, bnTarget, i2d(&mySieve, sieveIndex) );
-			if( mpz_probab_prime_p ( bnTarget, MR_TESTS) == 0 ) continue;
+			mpz_set(bnTarget, b);
+			mpz_add_ui(bnTarget, bnTarget, i2d(&mySieve, sieveIndex) );
+			if( mpz_probab_prime_p(bnTarget, MR_TESTS) == 0 ) continue;
 
 			int primes_found = 1;
-			mpz_add_ui( bnTarget, bnTarget, 4 );
-			if( mpz_probab_prime_p ( bnTarget, MR_TESTS) ) primes_found++;
+			mpz_add_ui(bnTarget, bnTarget, 4);
+			if( mpz_probab_prime_p(bnTarget, MR_TESTS) ) primes_found++;
 			else if( primes_found + 4 < primes ) continue;
 
-			mpz_add_ui( bnTarget, bnTarget, 2 );
-			if( mpz_probab_prime_p ( bnTarget, MR_TESTS) ) primes_found++;
+			mpz_add_ui(bnTarget, bnTarget, 2);
+			if( mpz_probab_prime_p(bnTarget, MR_TESTS) ) primes_found++;
 			else if( primes_found + 3 < primes ) continue;
 
-			mpz_add_ui( bnTarget, bnTarget, 4 );
-			if( mpz_probab_prime_p ( bnTarget, MR_TESTS) ) primes_found++;
+			mpz_add_ui(bnTarget, bnTarget, 4);
+			if( mpz_probab_prime_p(bnTarget, MR_TESTS) ) primes_found++;
 			else if( primes_found + 2 < primes ) continue;
 
-			mpz_add_ui( bnTarget, bnTarget, 2 );
-			if( mpz_probab_prime_p ( bnTarget, MR_TESTS) ) primes_found++;
+			mpz_add_ui(bnTarget, bnTarget, 2);
+			if( mpz_probab_prime_p(bnTarget, MR_TESTS) ) primes_found++;
 			else if( primes_found + 1 < primes ) continue;
 
-			mpz_add_ui( bnTarget, bnTarget, 4 );
-			if( mpz_probab_prime_p ( bnTarget, MR_TESTS) ) primes_found++;
+			mpz_add_ui(bnTarget, bnTarget, 4);
+			if( mpz_probab_prime_p(bnTarget, MR_TESTS) ) primes_found++;
 
 			if( primes_found >= primes )
 			{
@@ -439,15 +438,17 @@ int scanhash_riecoin(int thr_id, struct work *work, uint64_t max_nonce, uint64_t
 				#endif
 
 				*(uint64_t *)(&pdata[RIECOIN_DATA_NONCE]) = n + i2d(&mySieve, sieveIndex);
-
 				pdata[RIECOIN_DATA_NONCE] = swab32(pdata[RIECOIN_DATA_NONCE]);
 				pdata[RIECOIN_DATA_NONCE+1] = swab32(pdata[RIECOIN_DATA_NONCE+1]);
-				*hashes_done = (n + i2d(&mySieve, sieveIndex) - first_nonce + 1) / efficiencyDivisor;
-				if (opt_debug) {
+
+				*tests_done = tests;
+				work->sharediff = primes_found;
+
+				#ifdef REPORT_TESTS
 					char *header2str = abin2hex((char *)pdata, 128);
 					applog(LOG_DEBUG, "DEBUG: header=%s", header2str);
 					free(header2str);
-				}
+				#endif
 				mpz_clear(bnTarget);
 				mpz_clear(b);
 				return 1;
@@ -458,14 +459,15 @@ int scanhash_riecoin(int thr_id, struct work *work, uint64_t max_nonce, uint64_t
 			thr_id, tests, n, i2d(&mySieve, opt_sieve_size), max_nonce, sieveIndex, mySieve.x);
 #endif
 		n += i2d(&mySieve, opt_sieve_size);
-		mpz_add_ui( b, b, i2d(&mySieve, opt_sieve_size) );
+		mpz_add_ui(b, b, i2d(&mySieve, opt_sieve_size) );
 
 	} while (n < max_nonce && !work_restart[thr_id].restart);
 
-	*hashes_done = (n - first_nonce + 1) / efficiencyDivisor;
+	*tests_done = tests;
+
 	*((uint64_t*) (&work->data[RIECOIN_DATA_NONCE])) = max_nonce;
 
-	mpz_clear (bnTarget);
-	mpz_clear (b);
+	mpz_clear(bnTarget);
+	mpz_clear(b);
 	return 0;
 }
