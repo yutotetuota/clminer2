@@ -74,7 +74,7 @@ int scanhash_m7m(int thr_id, struct work *work, uint64_t max_nonce, uint64_t *ha
 	uint32_t *pdata = work->data;
 	uint32_t *ptarget = work->target;
 	uint32_t *data_p64 = data + (M7_MIDSTATE_LEN / sizeof(data[0]));
-	uint32_t n = pdata[19] - 1;
+	uint32_t n = pdata[19];
 	const uint32_t first_nonce = pdata[19];
 	char data_str[161], hash_str[65], target_str[65];
 	uint8_t *bdata = 0;
@@ -130,15 +130,27 @@ int scanhash_m7m(int thr_id, struct work *work, uint64_t max_nonce, uint64_t *ha
 	sph_tiger_context        ctx2_tiger;
 	sph_ripemd160_context    ctx2_ripemd;
 
+	mpf_t mpa1, mpb1, mpt1;
+	mpf_t mpa2, mpb2, mpt2;
+	mpf_t magifpi;
+	mpf_t mpsft;
+
+	mpz_t magipi;
+	mpz_t magisw;
+	mpz_init(magipi);
+	mpz_init(magisw);
+
 	do {
 
 		if (!cputest)
-			data[19] = ++n;
+			data[19] = n++;
 		else
 			hashtest = hash;
 
 		nnNonce2 = (int)(data[19]/2);
-		memset(bhash, 0, 7 * 64);
+		//memset(bhash, 0, 7 * 64);
+		memset(&bhash[0][32], 0, 32); // sha256
+		memset(&bhash[4][32], 0, 32 + 64*2); // haval/tiger/ripemd
 
 		ctx2_sha256 = ctx_sha256;
 		sph_sha256 (&ctx2_sha256, data_p64, 80 - M7_MIDSTATE_LEN);
@@ -170,7 +182,7 @@ int scanhash_m7m(int thr_id, struct work *work, uint64_t max_nonce, uint64_t *ha
 
 		for(int i=0; i < 7; i++){
 			set_one_if_zero(bhash[i]);
-			mpz_set_uint512(bns[i],bhash[i]);
+			mpz_set_uint512(bns[i], bhash[i]);
 		}
 
 		mpz_set_ui(bns[7],0);
@@ -196,19 +208,15 @@ int scanhash_m7m(int thr_id, struct work *work, uint64_t max_nonce, uint64_t *ha
 		sph_sha256_close(&ctx_final_sha256, (void*)(hash));
 
 		const int digits=(int)((sqrt((double)(nnNonce2))*(1.+EPS))/9000+75);
-		mpf_set_default_prec((int)(digits*BITS_PER_DIGIT+16));
-
-		mpz_t magipi;
-		mpz_t magisw;
-		mpf_t magifpi;
-		mpf_t mpa1, mpb1, mpt1;
-		mpf_t mpa2, mpb2, mpt2;
-		mpf_t mpsft;
-
-		const int iterations=20;
-
-		mpz_init(magipi);
-		mpz_init(magisw);
+		if (digits != s_digits) {
+			int prec = (int)(digits*BITS_PER_DIGIT+16);
+			mpf_set_default_prec(prec);
+			if (s_digits == -1) mpf_init(mpsqrt);
+			s_digits = digits;
+			mpf_set_ui(mpsqrt, 2);
+			mpf_sqrt(mpsqrt, mpsqrt);
+			mpf_ui_div(mpsqrt, 1, mpsqrt); // 1 / √2
+		}
 
 		mpf_init(magifpi);
 		mpf_init(mpsft);
@@ -225,23 +233,12 @@ int scanhash_m7m(int thr_id, struct work *work, uint64_t max_nonce, uint64_t *ha
 		mpz_set_ui(magisw, usw_);
 		uint32_t mpzscale = (uint32_t) mpz_size(magisw);
 
-		if (digits != s_digits) {
-			if (s_digits == -1) mpf_init(mpsqrt);
-			s_digits = digits;
-			int prec = (int)(digits*BITS_PER_DIGIT+16);
-			mpf_set_default_prec(prec);
-			mpf_set_ui(mpsqrt, 2);
-			mpf_sqrt(mpsqrt, mpsqrt);
-			mpf_ui_div(mpsqrt, 1, mpsqrt); // 1 / V"2
-		}
+		for(int i=0; i < NM7M; i++)
+		{
+			const int iterations = 20;
 
-		for(int i=0; i < NM7M; i++){
-			if (mpzscale > 1000) {
-				mpzscale = 1000;
-			}
-			else if (mpzscale < 1) {
-				mpzscale = 1;
-			}
+			if (mpzscale > 1000) mpzscale = 1000;
+			else if (mpzscale < 1) mpzscale = 1;
 
 			mpf_set_d(mpt1, 0.25*mpzscale);
 
@@ -309,8 +306,6 @@ int scanhash_m7m(int thr_id, struct work *work, uint64_t max_nonce, uint64_t *ha
 			sph_sha256_close(&ctx_final_sha256, (void*)(hash));
 		}
 
-		mpz_clear(magipi);
-		mpz_clear(magisw);
 		mpf_clear(magifpi);
 		mpf_clear(mpsft);
 		mpf_clear(mpa1);
@@ -343,6 +338,8 @@ int scanhash_m7m(int thr_id, struct work *work, uint64_t max_nonce, uint64_t *ha
 	pdata[19] = n;
 
 out:
+	mpz_clear(magipi);
+	mpz_clear(magisw);
 	for(int i=0; i < 8; i++) {
 		mpz_clear(bns[i]);
 	}
