@@ -2070,6 +2070,9 @@ void print_hash_tests(void)
 
 	//buf[0] = 1; buf[64] = 2; // for endian tests
 
+	argon2hash(&hash[0], &buf[0]);
+	printpfx("argon2", hash);
+
 	axiomhash(&hash[0], &buf[0]);
 	printpfx("axiom", hash);
 

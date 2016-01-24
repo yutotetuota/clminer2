@@ -76,6 +76,7 @@ enum algos {
 	ALGO_HEAVY,       /* Heavy */
 	ALGO_NEOSCRYPT,   /* NeoScrypt(128, 2, 1) with Salsa20/20 and ChaCha20/20 */
 	ALGO_QUARK,       /* Quark */
+	ALGO_ARGON2,      /* Double Scrypt jane Skein/Salsa64 + Blake2B */
 	ALGO_AXIOM,       /* Shabal 256 Memohash */
 	ALGO_BASTION,
 	ALGO_BLAKE,       /* Blake 256 */
@@ -119,6 +120,7 @@ static const char *algo_names[] = {
 	"heavy",
 	"neoscrypt",
 	"quark",
+	"argon2",
 	"axiom",
 	"bastion",
 	"blake",
@@ -1577,6 +1579,7 @@ static void stratum_gen_work(struct stratum_ctx *sctx, struct work *work)
 			case ALGO_HEAVY:
 				heavyhash(merkle_root, sctx->job.coinbase, (int)sctx->job.coinbase_size);
 				break;
+			case ALGO_ARGON2:
 			case ALGO_GROESTL:
 			case ALGO_KECCAK:
 			case ALGO_BLAKECOIN:
@@ -1630,6 +1633,7 @@ static void stratum_gen_work(struct stratum_ctx *sctx, struct work *work)
 		}
 
 		switch (opt_algo) {
+			case ALGO_ARGON2:
 			case ALGO_DROP:
 			case ALGO_SCRYPT:
 			case ALGO_SCRYPTJANE:
@@ -1928,6 +1932,7 @@ static void *miner_thread(void *userdata)
 			case ALGO_SCRYPTJANE:
 				max64 = 0x40LL;
 				break;
+			case ALGO_ARGON2:
 			case ALGO_DROP:
 			case ALGO_PLUCK:
 			case ALGO_YESCRYPT:
@@ -1982,6 +1987,9 @@ static void *miner_thread(void *userdata)
 		/* scan nonces for a proof-of-work hash */
 		switch (opt_algo) {
 
+		case ALGO_ARGON2:
+			rc = scanhash_argon2(thr_id, &work, max_nonce, &hashes_done);
+			break;
 		case ALGO_AXIOM:
 			rc = scanhash_axiom(thr_id, &work, max_nonce, &hashes_done);
 			break;
