@@ -6,6 +6,12 @@
 #include "blake2/blake2.h"
 #include "blake2/blake2-impl.h"
 
+#if defined(_MSC_VER)
+// i know there is a trick but nvm :p
+#define PRIu64 "%llu"
+#define PRIx64 "%llx"
+#endif
+
 static const uint64_t blake2b_IV[8] = {
 	UINT64_C(0x6a09e667f3bcc908), UINT64_C(0xbb67ae8584caa73b),
 	UINT64_C(0x3c6ef372fe94f82b), UINT64_C(0xa54ff53a5f1d36f1),

@@ -28,7 +28,7 @@
 
 void fill_block(__m128i *state, __m128i const *ref_block, __m128i *next_block)
 {
-    __m128i block_XY[ARGON2_QWORDS_IN_BLOCK] __attribute__ ((aligned (16)));
+    __m128i ALIGN(16) block_XY[ARGON2_QWORDS_IN_BLOCK];
     uint32_t i;
     for (i = 0; i < ARGON2_QWORDS_IN_BLOCK; i++) {
         block_XY[i] = state[i] = _mm_xor_si128(

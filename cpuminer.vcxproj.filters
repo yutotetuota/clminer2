@@ -291,6 +291,30 @@
     <ClCompile Include="yescrypt\sha256_Y.c">
       <Filter>yescrypt</Filter>
     </ClCompile>
+    <ClCompile Include="algo\argon2a.c">
+      <Filter>algo</Filter>
+    </ClCompile>
+    <ClCompile Include="ar2\argon2.c">
+      <Filter>ar2</Filter>
+    </ClCompile>
+    <ClCompile Include="ar2\blake2b.c">
+      <Filter>ar2</Filter>
+    </ClCompile>
+    <ClCompile Include="ar2\cores.c">
+      <Filter>ar2</Filter>
+    </ClCompile>
+    <ClCompile Include="ar2\opt.c">
+      <Filter>ar2</Filter>
+    </ClCompile>
+    <ClCompile Include="ar2\ref.c">
+      <Filter>ar2</Filter>
+    </ClCompile>
+    <ClCompile Include="ar2\thread.c">
+      <Filter>ar2</Filter>
+    </ClCompile>
+    <ClCompile Include="ar2\ar2-scrypt-jane.c">
+      <Filter>ar2</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="sha3\sph_blake.h">
@@ -497,6 +521,84 @@
     <ClInclude Include="yescrypt\yescrypt-platform.h">
       <Filter>yescrypt</Filter>
     </ClInclude>
+    <ClInclude Include="ar2\argon2.h">
+      <Filter>ar2</Filter>
+    </ClInclude>
+    <ClInclude Include="ar2\cores.h">
+      <Filter>ar2</Filter>
+    </ClInclude>
+    <ClInclude Include="ar2\opt.h">
+      <Filter>ar2</Filter>
+    </ClInclude>
+    <ClInclude Include="ar2\ref.h">
+      <Filter>ar2</Filter>
+    </ClInclude>
+    <ClInclude Include="ar2\scrypt-jane.h">
+      <Filter>ar2</Filter>
+    </ClInclude>
+    <ClInclude Include="ar2\thread.h">
+      <Filter>ar2</Filter>
+    </ClInclude>
+    <ClInclude Include="ar2\blake2\blake2.h">
+      <Filter>ar2\blake2</Filter>
+    </ClInclude>
+    <ClInclude Include="ar2\blake2\blake2-impl.h">
+      <Filter>ar2\blake2</Filter>
+    </ClInclude>
+    <ClInclude Include="ar2\blake2\blamka-round-opt.h">
+      <Filter>ar2\blake2</Filter>
+    </ClInclude>
+    <ClInclude Include="ar2\blake2\blamka-round-ref.h">
+      <Filter>ar2\blake2</Filter>
+    </ClInclude>
+    <ClInclude Include="ar2\sj\scrypt-jane-hash.h">
+      <Filter>ar2\sj</Filter>
+    </ClInclude>
+    <ClInclude Include="ar2\sj\scrypt-jane-hash_skein512.h">
+      <Filter>ar2\sj</Filter>
+    </ClInclude>
+    <ClInclude Include="ar2\sj\scrypt-jane-mix_salsa64.h">
+      <Filter>ar2\sj</Filter>
+    </ClInclude>
+    <ClInclude Include="ar2\sj\scrypt-jane-mix_salsa64-avx.h">
+      <Filter>ar2\sj</Filter>
+    </ClInclude>
+    <ClInclude Include="ar2\sj\scrypt-jane-mix_salsa64-avx2.h">
+      <Filter>ar2\sj</Filter>
+    </ClInclude>
+    <ClInclude Include="ar2\sj\scrypt-jane-mix_salsa64-sse2.h">
+      <Filter>ar2\sj</Filter>
+    </ClInclude>
+    <ClInclude Include="ar2\sj\scrypt-jane-mix_salsa64-ssse3.h">
+      <Filter>ar2\sj</Filter>
+    </ClInclude>
+    <ClInclude Include="ar2\sj\scrypt-jane-mix_salsa64-xop.h">
+      <Filter>ar2\sj</Filter>
+    </ClInclude>
+    <ClInclude Include="ar2\sj\scrypt-jane-pbkdf2.h">
+      <Filter>ar2\sj</Filter>
+    </ClInclude>
+    <ClInclude Include="ar2\sj\scrypt-jane-portable.h">
+      <Filter>ar2\sj</Filter>
+    </ClInclude>
+    <ClInclude Include="ar2\sj\scrypt-jane-portable-x86.h">
+      <Filter>ar2\sj</Filter>
+    </ClInclude>
+    <ClInclude Include="ar2\sj\scrypt-jane-romix.h">
+      <Filter>ar2\sj</Filter>
+    </ClInclude>
+    <ClInclude Include="ar2\sj\scrypt-jane-romix-basic.h">
+      <Filter>ar2\sj</Filter>
+    </ClInclude>
+    <ClInclude Include="ar2\sj\scrypt-jane-romix-template.h">
+      <Filter>ar2\sj</Filter>
+    </ClInclude>
+    <ClInclude Include="ar2\sj\scrypt-jane-salsa64.h">
+      <Filter>ar2\sj</Filter>
+    </ClInclude>
+    <ClInclude Include="ar2\sj\scrypt-jane-test-vectors.h">
+      <Filter>ar2\sj</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="sph">
@@ -537,6 +639,15 @@
     </Filter>
     <Filter Include="yescrypt">
       <UniqueIdentifier>{678c0f76-3cd5-418b-bc6b-84a10d81f789}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ar2">
+      <UniqueIdentifier>{32d86665-7b2b-4f8f-a00c-5f4982c6841f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ar2\blake2">
+      <UniqueIdentifier>{a370678a-8d07-4e32-90f9-08e6d7777189}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ar2\sj">
+      <UniqueIdentifier>{e12dd9cf-63d2-4943-a0f3-9069c3961c1c}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

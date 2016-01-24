@@ -166,6 +166,21 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="algo\argon2a.c" />
+    <ClCompile Include="ar2\argon2.c" />
+    <ClCompile Include="ar2\blake2b.c" />
+    <ClCompile Include="ar2\cores.c" />
+    <ClCompile Include="ar2\opt.c">
+      <!--
+      <EnableEnhancedInstructionSet Condition="'$(Configuration)|$(Platform)'=='Release|x64'">AdvancedVectorExtensions</EnableEnhancedInstructionSet>
+      -->
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="ar2\ref.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="ar2\ar2-scrypt-jane.c" />
+    <ClCompile Include="ar2\thread.c" />
     <ClCompile Include="compat\getopt\getopt_long.c" />
     <ClCompile Include="compat\gettimeofday.c" />
     <ClCompile Include="compat\jansson\dump.c" />
@@ -274,6 +289,32 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ar2\argon2.h" />
+    <ClInclude Include="ar2\blake2\blake2-impl.h" />
+    <ClInclude Include="ar2\blake2\blake2.h" />
+    <ClInclude Include="ar2\blake2\blamka-round-opt.h" />
+    <ClInclude Include="ar2\blake2\blamka-round-ref.h" />
+    <ClInclude Include="ar2\cores.h" />
+    <ClInclude Include="ar2\opt.h" />
+    <ClInclude Include="ar2\ref.h" />
+    <ClInclude Include="ar2\scrypt-jane.h" />
+    <ClInclude Include="ar2\sj\scrypt-jane-hash.h" />
+    <ClInclude Include="ar2\sj\scrypt-jane-hash_skein512.h" />
+    <ClInclude Include="ar2\sj\scrypt-jane-mix_salsa64-avx.h" />
+    <ClInclude Include="ar2\sj\scrypt-jane-mix_salsa64-avx2.h" />
+    <ClInclude Include="ar2\sj\scrypt-jane-mix_salsa64-sse2.h" />
+    <ClInclude Include="ar2\sj\scrypt-jane-mix_salsa64-ssse3.h" />
+    <ClInclude Include="ar2\sj\scrypt-jane-mix_salsa64-xop.h" />
+    <ClInclude Include="ar2\sj\scrypt-jane-mix_salsa64.h" />
+    <ClInclude Include="ar2\sj\scrypt-jane-pbkdf2.h" />
+    <ClInclude Include="ar2\sj\scrypt-jane-portable-x86.h" />
+    <ClInclude Include="ar2\sj\scrypt-jane-portable.h" />
+    <ClInclude Include="ar2\sj\scrypt-jane-romix-basic.h" />
+    <ClInclude Include="ar2\sj\scrypt-jane-romix-template.h" />
+    <ClInclude Include="ar2\sj\scrypt-jane-romix.h" />
+    <ClInclude Include="ar2\sj\scrypt-jane-salsa64.h" />
+    <ClInclude Include="ar2\sj\scrypt-jane-test-vectors.h" />
+    <ClInclude Include="ar2\thread.h" />
     <ClInclude Include="compat\jansson\config.h" />
     <ClInclude Include="compat\jansson\jansson.h" />
     <ClInclude Include="compat.h" />

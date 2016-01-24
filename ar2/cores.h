@@ -15,7 +15,7 @@
 #define ARGON2_CORES_H
 
 #if defined(_MSC_VER)
-#define ALIGN(n) __declspec(align(16))
+#define ALIGN(n) __declspec(align(n))
 #elif defined(__GNUC__) || defined(__clang)
 #define ALIGN(x) __attribute__((__aligned__(x)))
 #else
@@ -55,7 +55,7 @@ typedef enum Argon2_type { Argon2_d = 0, Argon2_i = 1 } argon2_type;
  * Memory blocks can be copied, XORed. Internal words can be accessed by [] (no
  * bounds checking).
  */
-typedef struct _block { uint64_t v[ARGON2_WORDS_IN_BLOCK]; } __attribute__ ((aligned (16))) block;
+typedef struct _block { uint64_t v[ARGON2_WORDS_IN_BLOCK]; } ALIGN(16) block;
 
 /*****************Functions that work with the block******************/
 
