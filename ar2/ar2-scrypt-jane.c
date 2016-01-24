@@ -12,7 +12,7 @@ extern "C" {
 #endif
 #endif
 
-#include "scrypt-jane.h"
+#include "ar2-scrypt-jane.h"
 
 #include "sj/scrypt-jane-portable.h"
 #include "sj/scrypt-jane-hash.h"

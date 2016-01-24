@@ -309,9 +309,6 @@
     <ClCompile Include="ar2\ref.c">
       <Filter>ar2</Filter>
     </ClCompile>
-    <ClCompile Include="ar2\thread.c">
-      <Filter>ar2</Filter>
-    </ClCompile>
     <ClCompile Include="ar2\ar2-scrypt-jane.c">
       <Filter>ar2</Filter>
     </ClCompile>
@@ -533,12 +530,6 @@
     <ClInclude Include="ar2\ref.h">
       <Filter>ar2</Filter>
     </ClInclude>
-    <ClInclude Include="ar2\scrypt-jane.h">
-      <Filter>ar2</Filter>
-    </ClInclude>
-    <ClInclude Include="ar2\thread.h">
-      <Filter>ar2</Filter>
-    </ClInclude>
     <ClInclude Include="ar2\blake2\blake2.h">
       <Filter>ar2\blake2</Filter>
     </ClInclude>
@@ -598,6 +589,9 @@
     </ClInclude>
     <ClInclude Include="ar2\sj\scrypt-jane-test-vectors.h">
       <Filter>ar2\sj</Filter>
+    </ClInclude>
+    <ClInclude Include="ar2\ar2-scrypt-jane.h">
+      <Filter>ar2</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

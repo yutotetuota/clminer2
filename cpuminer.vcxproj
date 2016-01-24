@@ -180,7 +180,6 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="ar2\ar2-scrypt-jane.c" />
-    <ClCompile Include="ar2\thread.c" />
     <ClCompile Include="compat\getopt\getopt_long.c" />
     <ClCompile Include="compat\gettimeofday.c" />
     <ClCompile Include="compat\jansson\dump.c" />
@@ -289,6 +288,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ar2\ar2-scrypt-jane.h" />
     <ClInclude Include="ar2\argon2.h" />
     <ClInclude Include="ar2\blake2\blake2-impl.h" />
     <ClInclude Include="ar2\blake2\blake2.h" />
@@ -297,7 +297,6 @@
     <ClInclude Include="ar2\cores.h" />
     <ClInclude Include="ar2\opt.h" />
     <ClInclude Include="ar2\ref.h" />
-    <ClInclude Include="ar2\scrypt-jane.h" />
     <ClInclude Include="ar2\sj\scrypt-jane-hash.h" />
     <ClInclude Include="ar2\sj\scrypt-jane-hash_skein512.h" />
     <ClInclude Include="ar2\sj\scrypt-jane-mix_salsa64-avx.h" />
@@ -314,7 +313,6 @@
     <ClInclude Include="ar2\sj\scrypt-jane-romix.h" />
     <ClInclude Include="ar2\sj\scrypt-jane-salsa64.h" />
     <ClInclude Include="ar2\sj\scrypt-jane-test-vectors.h" />
-    <ClInclude Include="ar2\thread.h" />
     <ClInclude Include="compat\jansson\config.h" />
     <ClInclude Include="compat\jansson\jansson.h" />
     <ClInclude Include="compat.h" />

@@ -15,6 +15,8 @@
 #define ARGON2_CORES_H
 
 #if defined(_MSC_VER)
+#include <Windows.h>
+#include <process.h>
 #define ALIGN(n) __declspec(align(n))
 #elif defined(__GNUC__) || defined(__clang)
 #define ALIGN(x) __attribute__((__aligned__(x)))
@@ -90,12 +92,6 @@ typedef struct Argon2_position_t {
     uint8_t slice;
     uint32_t index;
 } argon2_position_t;
-
-/*Struct that holds the inputs for thread handling FillSegment*/
-typedef struct Argon2_thread_data {
-    argon2_instance_t *instance_ptr;
-    argon2_position_t pos;
-} argon2_thread_data;
 
 /*************************Argon2 core
  * functions**************************************************/

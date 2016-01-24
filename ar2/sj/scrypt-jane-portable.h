@@ -62,7 +62,10 @@
 	#pragma warning(disable : 4127) /* conditional expression is constant */
 	#pragma warning(disable : 4100) /* unreferenced formal parameter */
 
+	#ifndef _CRT_SECURE_NO_WARNINGS
 	#define _CRT_SECURE_NO_WARNINGS
+	#endif
+
 	#include <float.h>
 	#include <stdlib.h> /* _rotl */
 	#include <intrin.h>

@@ -1,6 +1,4 @@
-#if defined(SCRYPT_SALSA)
-#include "scrypt-jane-salsa.h"
-#elif defined(SCRYPT_SALSA64)
+#if defined(SCRYPT_SALSA64)
 #include "scrypt-jane-salsa64.h"
 #else
 	#define SCRYPT_MIX_BASE "ERROR"

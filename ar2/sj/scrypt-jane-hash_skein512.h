@@ -155,7 +155,7 @@ scrypt_hash_update(scrypt_hash_state *S, const uint8_t *in, size_t inlen) {
 
 	/* handle leftover data */
 	memcpy(S->buffer + S->leftover, in, inlen);
-	S->leftover += inlen;
+	S->leftover += (int) inlen;
 }
 
 static void

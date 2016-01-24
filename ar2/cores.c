@@ -132,7 +132,7 @@ void finalize(const argon2_context *context, argon2_instance_t *instance) {
 #endif
 
         /* Clear memory */
-        clear_memory(instance, 1);
+        // clear_memory(instance, 1);
 
         free_memory(instance->memory);
     }

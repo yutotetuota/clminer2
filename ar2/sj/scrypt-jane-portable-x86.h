@@ -342,7 +342,7 @@ size_t cpu_detect_mask = (size_t)-1;
 
 static size_t
 detect_cpu(void) {
-	union { uint8_t s[12]; uint32_t i[3]; } vendor_string;
+	//union { uint8_t s[12]; uint32_t i[3]; } vendor_string;
 	//cpu_vendors_x86 vendor = cpu_nobody;
 	x86_regs regs;
 	uint32_t max_level, max_ext_level;
@@ -358,15 +358,16 @@ detect_cpu(void) {
 
 	get_cpuid(&regs, 0);
 	max_level = regs.eax;
+#if 0
 	vendor_string.i[0] = regs.ebx;
 	vendor_string.i[1] = regs.edx;
 	vendor_string.i[2] = regs.ecx;
 
-	//if (scrypt_verify(vendor_string.s, (const uint8_t *)"GenuineIntel", 12))
-	//	vendor = cpu_intel;
-	//else if (scrypt_verify(vendor_string.s, (const uint8_t *)"AuthenticAMD", 12))
-	//	vendor = cpu_amd;
-
+	if (scrypt_verify(vendor_string.s, (const uint8_t *)"GenuineIntel", 12))
+		vendor = cpu_intel;
+	else if (scrypt_verify(vendor_string.s, (const uint8_t *)"AuthenticAMD", 12))
+		vendor = cpu_amd;
+#endif
 	if (max_level & 0x00000500) {
 		/* "Intel P5 pre-B0" */
 		cpu_flags |= cpu_mmx;
