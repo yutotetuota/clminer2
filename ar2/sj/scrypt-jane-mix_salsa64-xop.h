@@ -167,7 +167,7 @@ asm_naked_fn_end(scrypt_ChunkMix_xop)
 static void asm_calling_convention
 scrypt_ChunkMix_xop(uint64_t *Bout/*[chunkBytes]*/, uint64_t *Bin/*[chunkBytes]*/, uint64_t *Bxor/*[chunkBytes]*/, uint32_t r) {
 	uint32_t i, blocksPerChunk = r * 2, half = 0;
-	xmmi *xmmp,x0,x1,x2,x3,x4,x5,x6,x7,t0,t1,t2,t3,t4,t5,t6,t7,z0,z1,z2,z3;
+	xmmi *xmmp,x0,x1,x2,x3,x4,x5,x6,x7,t0,t1,t2,t3,t4,t5,t6,t7,z0,z1;
 	size_t rounds;
 
 	/* 1: X = B_{2r - 1} */
