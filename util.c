@@ -2438,6 +2438,9 @@ void print_hash_tests(void)
 	veltor_hash(&hash[0], &buf[0]);
 	printpfx("veltor", hash);
 
+	vipstarcoinhash(&hash[0], &buf[0]);
+	printpfx("vipstar", hash);
+
 	xevan_hash(&hash[0], &buf[0]);
 	printpfx("xevan", hash);
 

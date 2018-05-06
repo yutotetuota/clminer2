@@ -1,7 +1,7 @@
 CPUMiner-Multi
 ==============
 
-[![Build Status](https://travis-ci.org/tpruvot/cpuminer-multi.svg)](https://travis-ci.org/tpruvot/cpuminer-multi)
+
 
 This is a multi-threaded CPU miner,
 fork of [pooler](//github.com/pooler)'s cpuminer (see AUTHORS for list of contributors).
@@ -56,6 +56,7 @@ Algorithms
  * ✓ __tribus__ 3 of the top NIST5 algos (Denarius [DNR])
  * ✓ __vanilla__ (Blake-256 8-rounds - double sha256 [VNL])
  * ✓ __veltor__ (Veltor [VLT])
+ * ✓ __vipstar__ (Vipstarcoin [VIPS])
  * ✓ __xevan__ x17 x 2 on bigger header (BitSend [BSD])
  * ✓ __x11evo__ (Revolver [XRE])
  * ✓ __x11__ (Darkcoin [DRK], Hirocoin, Limecoin, ...)
@@ -89,9 +90,9 @@ Dependencies
 
 Download
 ========
- * Windows releases: https://github.com/tpruvot/cpuminer-multi/releases
- * Git tree:   https://github.com/tpruvot/cpuminer-multi
-   * Clone with `git clone https://github.com/tpruvot/cpuminer-multi`
+ * Windows releases: https://github.com/konbu000/cpuminer-multi/releases
+ * Git tree:   https://github.com/konbu000/cpuminer-multi
+   * Clone with `git clone https://github.com/konbu000/cpuminer-multi`
 
 Build
 =====
@@ -176,6 +177,9 @@ When the --proxy option is not used, the program honors the http_proxy and all_p
 Donations
 =========
 Donations for the work done in this fork are accepted :
+konbu000 :
+* VIPS: `VZJCUgdeSDm56GTwc7opDWCRhopUauwijC`
+* BTC: `3FcUr7WeLEB1rfxcA7HscBuD4yXrQHTqVG`
 
 Tanguy Pruvot :
 * BTC: `1FhDPLPpw18X4srecguG3MxJYe4a1JsZnd`
@@ -187,8 +191,7 @@ Lucas Jones :
 Credits
 =======
 CPUMiner-multi was forked from pooler's CPUMiner, and has been started by Lucas Jones.
-* [tpruvot](https://github.com/tpruvot) added all the recent features and newer algorythmns
-* [Wolf9466](https://github.com/wolf9466) helped with Intel AES-NI support for CryptoNight
+* [konbu000](https://github.com/konbu000) supported vipstarcoin
 
 License
 =======
