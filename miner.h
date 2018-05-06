@@ -229,6 +229,7 @@ int scanhash_quark(int thr_id, struct work *work, uint32_t max_nonce, uint64_t *
 void init_quarkhash_contexts();
 int scanhash_qubit(int thr_id, struct work *work, uint32_t max_nonce, uint64_t *hashes_done);
 int scanhash_sha256d(int thr_id, struct work *work, uint32_t max_nonce, uint64_t *hashes_done);
+int scanhash_sha256d_vips(int thr_id, struct work *work, uint32_t max_nonce, uint64_t *hashes_done);
 unsigned char *scrypt_buffer_alloc(int N);
 int scanhash_scrypt(int thr_id, struct work *work, uint32_t max_nonce, uint64_t *hashes_done,
 					unsigned char *scratchbuf, uint32_t N);
@@ -530,6 +531,7 @@ void timetravel_hash(void *output, const void *input);
 void bitcore_hash(void *output, const void *input);
 void tribus_hash(void *output, const void *input);
 void veltor_hash(void *output, const void *input);
+void vipstarcoinhash(void *output, const void *input);
 void xevan_hash(void *output, const void *input);
 void x11evo_hash(void *output, const void *input);
 void x11hash(void *output, const void *input);

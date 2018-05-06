@@ -120,6 +120,7 @@ enum algos {
 	ALGO_TRIBUS,      /* Denarius jh/keccak/echo */
 	ALGO_VANILLA,     /* Vanilla (Blake256 8-rounds - double sha256) */
 	ALGO_VELTOR,      /* Skein Shavite Shabal Streebog */
+	ALGO_VIPSTAR,      /* Vipstarcoin */
 	ALGO_X11EVO,      /* Permuted X11 */
 	ALGO_X11,         /* X11 */
 	ALGO_X12,
@@ -132,7 +133,7 @@ enum algos {
 	ALGO_XEVAN,
 	ALGO_YESCRYPT,
 	ALGO_ZR5,
-	ALGO_COUNT
+	ALGO_COUNT    
 };
 
 static const char *algo_names[] = {
@@ -179,6 +180,7 @@ static const char *algo_names[] = {
 	"tribus",
 	"vanilla",
 	"veltor",
+	"vipstar",
 	"x11evo",
 	"x11",
 	"x12",
@@ -336,6 +338,7 @@ Options:\n\
                           s3           S3\n\
                           timetravel   Timetravel (Machinecoin)\n\
                           vanilla      Blake-256 8-rounds\n\
+                          vipstar      Vipstarcoin\n\
                           x11evo       Permuted x11\n\
                           x11          X11\n\
                           x12          X12\n\
@@ -598,6 +601,9 @@ static bool work_decode(const json_t *val, struct work *work)
 		allow_mininginfo = false;
 		data_size = 192;
 		adata_sz = 180/4;
+	} else if (opt_algo == ALGO_VIPSTAR) {
+		data_size = 192;
+		adata_sz = data_size/4;
 	}
 
 	if (jsonrpc_2) {
@@ -650,7 +656,11 @@ static bool work_decode(const json_t *val, struct work *work)
 				algo_names[opt_algo], work->height, netinfo);
 			net_blocks = work->height - 1;
 		}
-	}
+	} else if (opt_algo == ALGO_VIPSTAR) {
+		work->data[45] = 0x00800000;
+		work->data[46] = 0x00000000;
+		work->data[47] = 0x000005a8;
+    }
 
 	return true;
 
@@ -1289,6 +1299,9 @@ static bool submit_upstream_work(CURL *curl, struct work *work)
 		} else if (opt_algo == ALGO_DECRED) {
 			/* bigger data size : 180 + terminal hash ending */
 			data_size = 192;
+		} else if(opt_algo == ALGO_VIPSTAR){
+			data_size = 192;
+			adata_sz = data_size / 4;
 		}
 		adata_sz = data_size / sizeof(uint32_t);
 		if (opt_algo == ALGO_DECRED) adata_sz = 180 / 4; // dont touch the end tag
@@ -1341,6 +1354,9 @@ static const char *gbt_req =
 static const char *gbt_lp_req =
 	"{\"method\": \"getblocktemplate\", \"params\": [{\"capabilities\": "
 	GBT_CAPABILITIES ", \"longpollid\": \"%s\"}], \"id\":0}\r\n";
+static const char *gbt_vips_req =
+	"{\"method\": \"getblocktemplate\", \"params\": "
+	"[{\"rules\": [\"segwit\"]}], \"id\":9}\r\n";
 
 static bool get_upstream_work(CURL *curl, struct work *work)
 {
@@ -1357,9 +1373,15 @@ start:
 		snprintf(s, 128, "{\"method\": \"getjob\", \"params\": {\"id\": \"%s\"}, \"id\":1}\r\n", rpc2_id);
 		val = json_rpc2_call(curl, rpc_url, rpc_userpass, s, NULL, 0);
 	} else {
-		val = json_rpc_call(curl, rpc_url, rpc_userpass,
+		if(opt_algo == ALGO_VIPSTAR){
+			val = json_rpc_call(curl, rpc_url, rpc_userpass,
+		                    have_gbt ? gbt_vips_req : getwork_req,
+		                    &err, have_gbt ? JSON_RPC_QUIET_404 : 0);
+        } else {
+		    val = json_rpc_call(curl, rpc_url, rpc_userpass,
 		                    have_gbt ? gbt_req : getwork_req,
 		                    &err, have_gbt ? JSON_RPC_QUIET_404 : 0);
+        }
 	}
 	gettimeofday(&tv_end, NULL);
 
@@ -2183,6 +2205,7 @@ static void *miner_thread(void *userdata)
 			case ALGO_BLAKECOIN:
 			case ALGO_DECRED:
 			case ALGO_VANILLA:
+			case ALGO_VIPSTAR:
 				max64 = 0x3fffffLL;
 				break;
 			case ALGO_SIA:
@@ -2331,6 +2354,9 @@ static void *miner_thread(void *userdata)
 		case ALGO_VELTOR:
 			rc = scanhash_veltor(thr_id, &work, max_nonce, &hashes_done);
 			break;
+		case ALGO_VIPSTAR:
+			rc = scanhash_sha256d_vips(thr_id, &work, max_nonce, &hashes_done);
+			break;
 		case ALGO_X11EVO:
 			rc = scanhash_x11evo(thr_id, &work, max_nonce, &hashes_done);
 			break;
@@ -2419,7 +2445,7 @@ static void *miner_thread(void *userdata)
 				global_hashrate = (uint64_t) hashrate;
 			}
 		}
-
+	
 		/* if nonce found, submit work */
 		if (rc && !opt_benchmark) {
 			if (!submit_work(mythr, &work))
@@ -3329,6 +3355,9 @@ static void show_credits()
 {
 	printf("** " PACKAGE_NAME " " PACKAGE_VERSION " by tpruvot@github **\n");
 	printf("BTC donation address: 1FhDPLPpw18X4srecguG3MxJYe4a1JsZnd (tpruvot)\n\n");
+
+	printf("** " PACKAGE_NAME " " PACKAGE_VERSION2 " by konbu000@github **\n");
+	printf("VIPS donation address: VZJCUgdeSDm56GTwc7opDWCRhopUauwijC (konbu000)\n\n");
 }
 
 void get_defconfig_path(char *out, size_t bufsize, char *argv0);
@@ -3392,7 +3421,7 @@ int main(int argc, char *argv[]) {
 			applog(LOG_INFO, "Using JSON-RPC 2.0");
 			applog(LOG_INFO, "CPU Supports AES-NI: %s", aes_ni_supported ? "YES" : "NO");
 		}
-	} else if(opt_algo == ALGO_DECRED || opt_algo == ALGO_SIA) {
+	} else if(opt_algo == ALGO_DECRED || opt_algo == ALGO_SIA || opt_algo == ALGO_VIPSTAR) {
 		have_gbt = false;
 	}
 
