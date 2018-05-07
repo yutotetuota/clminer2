@@ -11,20 +11,19 @@ int scanhash_sha256d_vips(int thr_id, struct work *work, uint32_t max_nonce, uin
 	uint32_t _ALIGN(32) midstate[8];
 	uint32_t _ALIGN(32) prehash[8];
 	uint32_t *pdata = work->data;
-	memset(work->data, 0, 48 * 4);
 	uint32_t *ptarget = work->target;
 	const uint32_t Htarg = ptarget[7];
     const uint32_t first_nonce = pdata[19];
 	uint32_t n = pdata[19] - 1;
 
-/*#ifdef HAVE_SHA256_8WAY
+#ifdef HAVE_SHA256_8WAY
 	if (sha256_use_8way())
 		return scanhash_sha256d_vips_8way(thr_id, work, max_nonce, hashes_done);
 #endif
 #ifdef HAVE_SHA256_4WAY
 	if (sha256_use_4way())
 		return scanhash_sha256d_vips_4way(thr_id, work, max_nonce, hashes_done);
-#endif*/
+#endif
  
 	memcpy(data, pdata + 16, 64);
 	sha256d_preextend(data);

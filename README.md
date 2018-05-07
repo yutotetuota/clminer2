@@ -1,8 +1,6 @@
 CPUMiner-Multi
 ==============
 
-
-
 This is a multi-threaded CPU miner,
 fork of [pooler](//github.com/pooler)'s cpuminer (see AUTHORS for list of contributors).
 
