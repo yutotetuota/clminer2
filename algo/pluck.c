@@ -24,7 +24,7 @@
  * SUCH DAMAGE.
  */
 
-#include "cpuminer-config.h"
+#include "vipsminer-config.h"
 #include "miner.h"
 
 #include <stdlib.h>

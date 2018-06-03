@@ -75,9 +75,15 @@ static __inline char * dirname(char *file) {
 	if (dir && strlen(dir) && dir[strlen(dir)-1] == '\\') {
 		dir[strlen(dir) - 1] = '\0';
 	}
+#ifdef WIN32
+#pragma warning(push)
+#pragma warning(disable:4013)
 	sprintf(dirname_buffer, "%s%s", drive, dir);
 	return &dirname_buffer[0];
 }
+#pragma warning(pop)
+#endif
+
 #endif
 
 #endif /* WIN32 */

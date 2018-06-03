@@ -1,9 +1,9 @@
-AC_INIT([cpuminer-multi], [1.3.4.1])
+AC_INIT([vipsminer], [1.00])
 
 AC_PREREQ([2.59c])
 AC_CANONICAL_SYSTEM
-AC_CONFIG_SRCDIR([cpu-miner.c])
-AC_CONFIG_HEADERS([cpuminer-config.h])
+AC_CONFIG_SRCDIR([vipsminer.c])
+AC_CONFIG_HEADERS([vipsminer-config.h])
 AC_CONFIG_MACRO_DIR([m4])
 
 AM_INIT_AUTOMAKE([foreign subdir-objects])
@@ -62,7 +62,7 @@ case $MINGW_TARGET in
     CFLAGS="-Icompat/pthreads $CFLAGS"
     PTHREAD_LDFLAGS="-Lcompat/pthreads/x64"
     # SHOULD BE AT END! after -lcrypto #
-    WS2_LIBS="-L/mingw/x86_64-w64-mingw32/lib -lws2_32"
+    WS2_LIBS="-L/mingw64/x86_64-w64-mingw32/lib -lws2_32"
     ;;
   i*86-*-*)
     have_x86=true
@@ -150,8 +150,8 @@ if test -n "$with_curl" ; then
    LIBCURL_CFLAGS="$LIBCURL_CFLAGS -I$with_curl/include"
    LIBCURL_CPPFLAGS="$LIBCURL_CPPFLAGS -I$with_curl/include"
    LIBCURL_LDFLAGS="-L$with_curl/lib $LIBCURL_LDFLAGS"
-   LIBCURL="-lcurl -lz"
 fi
+LIBCURL="-lcurl -lz"
 
 # SSL install path (for mingw : --with-crypto=/usr/local/ssl)
 AC_ARG_WITH([crypto],
@@ -161,8 +161,8 @@ if test -n "$with_crypto" ; then
    LIBCURL_CFLAGS="$LIBCURL_CFLAGS -I$with_crypto/include"
    LIBCURL_CPPFLAGS="$LIBCURL_CPPFLAGS -I$with_crypto/include"
    LIBCURL_LDFLAGS="-L$with_crypto/lib $LIBCURL_LDFLAGS"
-   LIBCURL="$LIBCURL -lssl -lcrypto"
 fi
+LIBCURL="$LIBCURL -lssl -lcrypto"
 
 CFLAGS="$CFLAGS $LIBCURL_CFLAGS"
 CPPFLAGS="$CPPFLAGS $LIBCURL_CPPFLAGS"
@@ -172,13 +172,41 @@ AC_CHECK_LIB([z],[gzopen],[],[])
 AC_CHECK_LIB([crypto],[EVP_DigestFinal_ex], crypto=yes, [AC_MSG_ERROR([OpenSSL crypto library required])])
 AC_CHECK_LIB([ssl],[SSL_free], ssl=yes, ssl=no)
 
-# AC_CHECK_LIB([curl], [curl_multi_timeout],
-#    have_libcurl=yes,
-#    have_libcurl=no AC_MSG_ERROR([curl library required])
-# )
+AC_CHECK_LIB([curl], [curl_multi_timeout],
+    have_libcurl=yes,
+    have_libcurl=no AC_MSG_ERROR([curl library required])
+)
 
 # LIBCURL_CHECK_CONFIG([yes], 7.15, curlconfig=yes, curlconfig=no)
 
+
+LIBOPENCL=""
+case "$host_os" in
+  darwin*)
+    AC_CHECK_LIB([OpenCL],[clGetPlatformIDs],[LIBOPENCL="-framework OpenCL"])
+  ;;
+  *)
+    AC_CHECK_LIB([OpenCL],[clGetPlatformIDs],[LIBOPENCL="-lOpenCL"])
+  ;;
+esac
+
+DISABLE_OPENCL=false
+AC_ARG_ENABLE([opencl],
+	[AS_HELP_STRING([--disable-opencl],
+	    [disable OpenCL])],
+	[DISABLE_OPENCL=true],
+	[DISABLE_OPENCL=false] 
+)
+
+
+if test x$DISABLE_OPENCL = xtrue ; then
+    LIBOPENCL=""
+else
+    AC_DEFINE([USE_OPENCL], [1], [OpenCL support])
+fi
+AM_CONDITIONAL([USE_OPENCL], [test x$DISABLE_OPENCL = xfalse])
+
+AC_SUBST(LIBOPENCL)
 AC_SUBST(LIBCURL)
 AC_SUBST(LIBCURL_CFLAGS)
 AC_SUBST(LIBCURL_CPPFLAGS)

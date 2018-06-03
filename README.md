@@ -1,4 +1,4 @@
-CPUMiner-Multi
+vipsminer
 ==============
 
 This is a multi-threaded CPU miner,
@@ -55,6 +55,7 @@ Algorithms
  * ✓ __vanilla__ (Blake-256 8-rounds - double sha256 [VNL])
  * ✓ __veltor__ (Veltor [VLT])
  * ✓ __vipstar__ (Vipstarcoin [VIPS])
+ * ✓ __vipstarcl__ (Vipstarcoin with OpenCL [VIPS])
  * ✓ __xevan__ x17 x 2 on bigger header (BitSend [BSD])
  * ✓ __x11evo__ (Revolver [XRE])
  * ✓ __x11__ (Darkcoin [DRK], Hirocoin, Limecoin, ...)
@@ -88,9 +89,9 @@ Dependencies
 
 Download
 ========
- * Windows releases: https://github.com/konbu000/cpuminer-multi/releases
- * Git tree:   https://github.com/konbu000/cpuminer-multi
-   * Clone with `git clone https://github.com/konbu000/cpuminer-multi`
+ * Windows releases: https://github.com/konbu000/vipsminer/releases
+ * Git tree:   https://github.com/konbu000/vipsminer
+   * Clone with `git clone https://github.com/konbu000/vipsminer`
 
 Build
 =====
@@ -102,7 +103,7 @@ _OR_
 ```
  ./autogen.sh	# only needed if building from git repo
  ./nomacro.pl	# only needed if building on Mac OS X or with Clang
- ./configure CFLAGS="*-march=native*" --with-crypto --with-curl
+ ./configure CFLAGS="-march=native -mtune=native"
  # Use -march=native if building for a single machine
  make
 ```
@@ -116,7 +117,13 @@ _OR_
 #### Note for pi64 users:
 
 ```
- ./configure --disable-assembly CFLAGS="-Ofast -march=native" --with-crypto --with-curl
+ ./configure --disable-assembly CFLAGS="-Ofast -march=native -mtune=native"
+```
+
+#### Note Disable OpenCL:
+
+```
+ ./configure CFLAGS="-Ofast -march=native -mtune=native --disable-opencl"
 ```
 
 #### Notes for AIX users:
@@ -160,7 +167,7 @@ _OR_
 
 Usage instructions
 ==================
-Run "cpuminer --help" to see options.
+Run "vipsminer --help" to see options.
 
 ### Connecting through a proxy
 
@@ -176,8 +183,8 @@ Donations
 =========
 Donations for the work done in this fork are accepted :
 konbu000 :
-* VIPS: `VZJCUgdeSDm56GTwc7opDWCRhopUauwijC`
-* BTC: `3FcUr7WeLEB1rfxcA7HscBuD4yXrQHTqVG`
+* VIPS: `VWWWWWWWpja1ScsE2UEKH8hnbkWiKaMJXA`
+* BTC: `3KeDMxksJPJQiAPVaSEZ4aeNATNVfB33bp`
 
 Tanguy Pruvot :
 * BTC: `1FhDPLPpw18X4srecguG3MxJYe4a1JsZnd`
@@ -188,7 +195,7 @@ Lucas Jones :
 
 Credits
 =======
-CPUMiner-multi was forked from pooler's CPUMiner, and has been started by Lucas Jones.
+vipsminer was forked from pooler's CPUMiner, and has been started by Lucas Jones.
 * [konbu000](https://github.com/konbu000) supported vipstarcoin
 
 License

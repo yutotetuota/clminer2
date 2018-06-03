@@ -3,10 +3,13 @@
 
 #include <sys/types.h>
 #include <inttypes.h>
+#if defined(__SSE2__) && defined(USE_ASM)
 #include <xmmintrin.h>
 #include <emmintrin.h>
+#endif
+#if defined(__AVX2__) && defined(USE_ASM)
 #include <immintrin.h>
-
+#endif
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -16,6 +19,7 @@ static const uint32_t sha256_h[8] = {
 	0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
 };
 
+#if defined(__SSE2__) && defined(USE_ASM)
 static const uint32_t _ALIGN(32) sha256_h_sse[8 * 4] = {
 	0x6a09e667, 0x6a09e667, 0x6a09e667, 0x6a09e667,
 	0xbb67ae85, 0xbb67ae85, 0xbb67ae85, 0xbb67ae85,
@@ -28,7 +32,9 @@ static const uint32_t _ALIGN(32) sha256_h_sse[8 * 4] = {
 };
 
 static const __m128i *sha256_h_128 = (__m128i*)sha256_h_sse;
+#endif
 
+#if defined(__AVX2__) && defined(USE_ASM)
 static const uint32_t _ALIGN(32) sha256_h_avx[8 * 8] = {
 	0x6a09e667, 0x6a09e667, 0x6a09e667, 0x6a09e667, 0x6a09e667, 0x6a09e667, 0x6a09e667, 0x6a09e667,
 	0xbb67ae85, 0xbb67ae85, 0xbb67ae85, 0xbb67ae85, 0xbb67ae85, 0xbb67ae85, 0xbb67ae85, 0xbb67ae85,
@@ -41,6 +47,7 @@ static const uint32_t _ALIGN(32) sha256_h_avx[8 * 8] = {
 };
 
 static const __m256i *sha256_h_256 = (__m256i*)sha256_h_avx;
+#endif
 
 static const uint32_t sha256_k[64] = {
 	0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
@@ -61,6 +68,7 @@ static const uint32_t sha256_k[64] = {
 	0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
 };
 
+#if defined(__SSE2__) && defined(USE_ASM)
 static const uint32_t _ALIGN(32) sha256_k_sse[64 * 4] = {
 	0x428a2f98, 0x428a2f98, 0x428a2f98, 0x428a2f98,
 	0x71374491, 0x71374491, 0x71374491, 0x71374491,
@@ -129,7 +137,9 @@ static const uint32_t _ALIGN(32) sha256_k_sse[64 * 4] = {
 };
 
 static const __m128i *sha256_k_128 = (__m128i*)sha256_k_sse;
+#endif
 
+#if defined(__AVX2__) && defined(USE_ASM)
 static const uint32_t _ALIGN(32) sha256_k_avx[64 * 8] = {
 	0x428a2f98, 0x428a2f98, 0x428a2f98, 0x428a2f98, 0x428a2f98, 0x428a2f98, 0x428a2f98, 0x428a2f98,
 	0x71374491, 0x71374491, 0x71374491, 0x71374491, 0x71374491, 0x71374491, 0x71374491, 0x71374491,
@@ -198,6 +208,7 @@ static const uint32_t _ALIGN(32) sha256_k_avx[64 * 8] = {
 };
 
 static const __m256i *sha256_k_256 = (__m256i*)sha256_k_avx;
+#endif
 
 static const uint32_t sha256d_hash1[16] = {
 	0x00000000, 0x00000000, 0x00000000, 0x00000000,
@@ -206,6 +217,7 @@ static const uint32_t sha256d_hash1[16] = {
 	0x00000000, 0x00000000, 0x00000000, 0x00000100
 };
 
+#if defined(__SSE2__) && defined(USE_ASM)
 static const uint32_t _ALIGN(32) sha256d_hash1_sse[16 * 4] = {
 	0x00000000, 0x00000000, 0x00000000, 0x00000000,
 	0x00000000, 0x00000000, 0x00000000, 0x00000000,
@@ -226,7 +238,9 @@ static const uint32_t _ALIGN(32) sha256d_hash1_sse[16 * 4] = {
 };
 
 static const __m128i *sha256d_hash1_128 = (__m128i*)sha256d_hash1_sse;
+#endif
 
+#if defined(__AVX2__) && defined(USE_ASM)
 static const uint32_t _ALIGN(32) sha256d_hash1_avx[16 * 8] = {
 	0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
 	0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
@@ -247,7 +261,7 @@ static const uint32_t _ALIGN(32) sha256d_hash1_avx[16 * 8] = {
 };
 
 static const __m256i *sha256d_hash1_256 = (__m256i*)sha256d_hash1_avx;
-
+#endif
 
 /* Elementary functions used by SHA256 */
 #define Ch(x, y, z)     ((x & (y ^ z)) ^ z)
@@ -276,7 +290,7 @@ static const __m256i *sha256d_hash1_256 = (__m256i*)sha256d_hash1_avx;
 		W[i] + sha256_k[i])
 
 
-#ifdef HAVE_SHA256_4WAY
+#if defined(__SSE2__) && defined(USE_ASM)
 /* Elementary functions used by SHA256 */
 #define Ch_128(x, y, z)     (_mm_xor_si128(_mm_and_si128(x, _mm_xor_si128(y, z)), z))
 #define Maj_128(x, y, z)    (_mm_or_si128(_mm_and_si128(x, _mm_or_si128(y, z)) ,_mm_and_si128(y, z)))
@@ -302,10 +316,10 @@ static const __m256i *sha256d_hash1_256 = (__m256i*)sha256d_hash1_avx;
 		S[(68 - i) % 8], S[(69 - i) % 8], \
 		S[(70 - i) % 8], S[(71 - i) % 8], \
 		_mm_add_epi32(W[i], sha256_k_128[i]))
-#endif /* HAVE_SHA256_4WAY */
+#endif /* __SSE2__ */
 
 
-#ifdef HAVE_SHA256_8WAY
+#if defined(__AVX2__) && defined(USE_ASM)
 /* Elementary functions used by SHA256 */
 #define Ch_256(x, y, z)     (_mm256_xor_si256(_mm256_and_si256(x, _mm256_xor_si256(y, z)), z))
 #define Maj_256(x, y, z)    (_mm256_or_si256(_mm256_and_si256(x, _mm256_or_si256(y, z)) ,_mm256_and_si256(y, z)))
@@ -331,19 +345,23 @@ static const __m256i *sha256d_hash1_256 = (__m256i*)sha256d_hash1_avx;
 	    S[(68 - i) % 8], S[(69 - i) % 8], \
 	    S[(70 - i) % 8], S[(71 - i) % 8], \
 	    _mm256_add_epi32(W[i], sha256_k_256[i]))
-#endif /* HAVE_SHA256_8WAY */
+#endif /* __AVX2__ */
 
-static void sha256d_181_swap(uint32_t *hash, const uint32_t *data);
+static inline void sha256d_181_swap(uint32_t *hash, const uint32_t *data);
 static inline void sha256d_preextend(uint32_t *W);
 static inline void sha256d_preextend2(uint32_t *W);
 static inline void sha256d_prehash(uint32_t *S, const uint32_t *W);
 static inline void sha256d_ms_vips(uint32_t *hash, uint32_t *W,	const uint32_t *midstate, const uint32_t *prehash);
+#if defined(__SSE2__) && defined(USE_ASM)
 static inline int scanhash_sha256d_vips_4way(int thr_id, struct work *work, uint32_t max_nonce, uint64_t *hashes_done);
-static void sha256d_vips_ms_4way(__m128i *hash,  __m128i *data, const __m128i *midstate, const __m128i *prehash);
+static inline void sha256d_vips_ms_4way(__m128i *hash,  __m128i *data, const __m128i *midstate, const __m128i *prehash);
+#endif
+#if defined(__AVX2__) && defined(USE_ASM)
 static inline int scanhash_sha256d_vips_8way(int thr_id, struct work *work, uint32_t max_nonce, uint64_t *hashes_done);
-static void sha256d_vips_ms_8way(__m256i *hash,  __m256i *data, const __m256i *midstate, const __m256i *prehash);
+static inline void sha256d_vips_ms_8way(__m256i *hash,  __m256i *data, const __m256i *midstate, const __m256i *prehash);
+#endif
 
 #ifdef __cplusplus
 }
 #endif
-#endif /* !_SHA256_VIPS_H_ */
+#endif /* _SHA256_VIPS_H_ */

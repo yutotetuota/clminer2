@@ -27,4 +27,4 @@ fi
 
 make -j 4
 
-strip -s cpuminer
+strip -s vipsminer
