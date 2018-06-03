@@ -1,5 +1,5 @@
 minerd*
-cpuminer
+vipsminer
 *.exe
 *.o
 *.d
@@ -18,7 +18,7 @@ depcomp
 missing
 install-sh
 stamp-h1
-cpuminer-config.h*
+vipsminer-config.h*
 compile
 config.log
 config.status
@@ -48,4 +48,5 @@ res/RC*
 sign/
 sign.sh
 
-compat/curl-for-windows/
+.vscode/
+.vs/

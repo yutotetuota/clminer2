@@ -11,12 +11,12 @@ SUBDIRS		= compat
 
 ALL_INCLUDES	= @PTHREAD_FLAGS@ -fno-strict-aliasing $(JANSSON_INCLUDES) -I.
 
-bin_PROGRAMS	= cpuminer
+bin_PROGRAMS	= vipsminer
 
-dist_man_MANS	= cpuminer.1
+dist_man_MANS	= vipsminer.1
 
-cpuminer_SOURCES = \
-  cpu-miner.c util.c \
+vipsminer_SOURCES = \
+  vipsminer.c util.c \
   api.c sysinfos.c \
   uint256.cpp \
   sha3/sph_keccak.c \
@@ -111,42 +111,46 @@ cpuminer_SOURCES = \
 disable_flags =
 
 if USE_ASM
-   cpuminer_SOURCES += asm/neoscrypt_asm.S
+   vipsminer_SOURCES += asm/neoscrypt_asm.S
 if ARCH_x86
-   cpuminer_SOURCES += asm/sha2-x86.S asm/scrypt-x86.S asm/aesb-x86.S
+   vipsminer_SOURCES += asm/sha2-x86.S asm/scrypt-x86.S asm/aesb-x86.S
 endif
 if ARCH_x86_64
-   cpuminer_SOURCES += asm/sha2-x64.S asm/scrypt-x64.S asm/aesb-x64.S
+   vipsminer_SOURCES += asm/sha2-x64.S asm/scrypt-x64.S asm/aesb-x64.S
 endif
 if ARCH_ARM
-   cpuminer_SOURCES += asm/sha2-arm.S asm/scrypt-arm.S
+   vipsminer_SOURCES += asm/sha2-arm.S asm/scrypt-arm.S
 endif
 else
    disable_flags += -DNOASM
 endif
 
 if HAVE_WINDOWS
-   cpuminer_SOURCES += compat/winansi.c
+   vipsminer_SOURCES += compat/winansi.c
 endif
 
-cpuminer_LDFLAGS	= @LDFLAGS@
-cpuminer_LDADD	= @LIBCURL@ @JANSSON_LIBS@ @PTHREAD_LIBS@ @WS2_LIBS@
-cpuminer_CPPFLAGS = @LIBCURL_CPPFLAGS@ $(ALL_INCLUDES)
-cpuminer_CFLAGS   = -Wno-pointer-sign -Wno-pointer-to-int-cast $(disable_flags)
+if USE_OPENCL
+    vipsminer_SOURCES += vipstar/cl.c
+endif
+
+vipsminer_LDFLAGS	= @LDFLAGS@
+vipsminer_LDADD	= @LIBCURL@ @JANSSON_LIBS@ @PTHREAD_LIBS@ @WS2_LIBS@ @LIBOPENCL@
+vipsminer_CPPFLAGS = @LIBCURL_CPPFLAGS@ $(ALL_INCLUDES)
+vipsminer_CFLAGS   = -Wno-pointer-sign -Wno-pointer-to-int-cast $(disable_flags)
 
 if HAVE_WINDOWS
-cpuminer_CFLAGS += -Wl,--stack,10485760
-cpuminer_LDADD += -lcrypt32 -lgdi32 -lgcc -lgcc_eh
+vipsminer_CFLAGS += -Wl,--stack,10485760
+vipsminer_LDADD += -lcrypt32 -lgdi32 -lgcc -lgcc_eh
 endif
 
 if HAVE_WINDOWS
 # use to profile an object
 # gprof_cflags = -pg -g3
-# cpuminer_LDFLAGS += -pg
-# cpuminer_CFLAGS += -fno-inline-functions -static
+# vipsminer_LDFLAGS += -pg
+# vipsminer_CFLAGS += -fno-inline-functions -static
 
 # copy/paste from generated Makefile
-common_ccflags = $(DEFS) $(ALL_INCLUDES) $(cpuminer_CPPFLAGS) $(CPPFLAGS) $(cpuminer_CFLAGS) $(CFLAGS)
+common_ccflags = $(DEFS) $(ALL_INCLUDES) $(vipsminer_CPPFLAGS) $(CPPFLAGS) $(vipsminer_CFLAGS) $(CFLAGS)
 
 # special CFLAGS (if you find a simpler way to do that tell me ;)
 cpuminer-neoscrypt.o: neoscrypt.c

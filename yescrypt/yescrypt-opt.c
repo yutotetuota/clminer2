@@ -791,7 +791,7 @@ yescrypt_kdf(const yescrypt_shared_t * shared, yescrypt_local_t * local,
 
 	/* Allocate memory */
 	V = NULL;
-	V_size = (size_t)128 * r * N;
+	V_size = (size_t)(128 * r * N);
 #ifdef _OPENMP
 	if (!(flags & YESCRYPT_PARALLEL_SMIX))
 		V_size *= p;

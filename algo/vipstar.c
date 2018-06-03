@@ -3,6 +3,84 @@
 #include "../miner.h"
 #include "../compat.h"
 #include "../vipstar/sha2.h"
+#ifdef USE_OPENCL
+#include "../vipstar/cl.h"
+
+#define OCLSTRINGIFY(...) #__VA_ARGS__
+int scanhash_sha256d_vips_cl(int thr_id, struct work *work, uint32_t max_nonce, uint64_t *hashes_done, struct cl_ctx *cl)
+{
+	uint32_t _ALIGN(32) threads = cl[thr_id].num_cores;
+	size_t _ALIGN(32) buf_bytes = sizeof(uint32_t) * (4 + CL_HASH_SIZE + CL_DATA_SIZE + CL_MIDSTATE_SIZE);
+	uint32_t _ALIGN(32) hash[sizeof(uint32_t) * (4 + CL_HASH_SIZE + CL_DATA_SIZE + CL_MIDSTATE_SIZE)];
+	uint32_t _ALIGN(32) *data = hash + 4;
+	uint32_t _ALIGN(32) *midstate = data + 128;
+	uint32_t _ALIGN(32) *prehash = midstate +  8;
+	uint32_t _ALIGN(32) dst[8];
+	uint32_t *pdata = work->data;
+	uint32_t *ptarget = work->target;
+	uint32_t n = pdata[19];
+	const uint32_t first_nonce = pdata[19];
+	const uint32_t Htarg = ptarget[7];
+	int result;
+	max_nonce -= threads * 2 * 32;
+	cl_int ret;
+
+	memcpy(data, pdata + 16, 64);
+	sha256d_preextend(data);
+
+
+	const size_t offset = 64;
+	memcpy(data + offset, pdata + 32, 64);
+	sha256d_preextend2(data + offset);
+
+
+	sha256_init(midstate);
+	sha256_transform(midstate, pdata, 0);
+	memcpy(prehash, midstate, 32);
+	sha256d_prehash(prehash, pdata + 16);
+
+
+	data[3] =  n - threads;
+
+	hash[0] = data[3];
+	hash[1] = UINT32_MAX;
+	hash[2] = Htarg;
+	uint32_t current_nonce = data[3];
+	ret = cl_write_buffer(&cl[thr_id], hash, buf_bytes);
+
+	size_t global_work_size[3] = { threads, 1, 1 };
+	size_t local_work_size[3]  = { cl[thr_id].work_group_size, 1, 1 };
+
+
+	
+	do {
+		ret = clEnqueueNDRangeKernel(cl[thr_id].command_queue, cl[thr_id].kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
+		ret = clEnqueueReadBuffer(cl[thr_id].command_queue, cl[thr_id].memobj, CL_TRUE, 0, sizeof(uint32_t) * 1, hash, 0, NULL, NULL);
+
+		if (unlikely(current_nonce != hash[0])) {
+			current_nonce = hash[0];
+			pdata[19] = hash[0];
+			sha256d_181_swap(dst, pdata);
+			if (fulltest(dst, ptarget)) {
+				work_set_target_ratio(work, dst);
+				*hashes_done = n - first_nonce + 1;
+				result = 1;
+				goto EXIT;
+			}
+		}
+
+		n += threads * 32 * cl->device->vector_width;
+	} while (n < max_nonce && !work_restart[thr_id].restart);
+
+	result = 0;
+	*hashes_done = n - first_nonce + 1;
+	pdata[19] = n;
+EXIT:
+
+	return result;
+}
+#endif
+
 
 int scanhash_sha256d_vips(int thr_id, struct work *work, uint32_t max_nonce, uint64_t *hashes_done)
 {
@@ -13,14 +91,15 @@ int scanhash_sha256d_vips(int thr_id, struct work *work, uint32_t max_nonce, uin
 	uint32_t *pdata = work->data;
 	uint32_t *ptarget = work->target;
 	const uint32_t Htarg = ptarget[7];
-    const uint32_t first_nonce = pdata[19];
+	const uint32_t first_nonce = pdata[19];
 	uint32_t n = pdata[19] - 1;
 
-#ifdef HAVE_SHA256_8WAY
+
+#if defined(__AVX2__) && defined(USE_ASM)
 	if (sha256_use_8way())
 		return scanhash_sha256d_vips_8way(thr_id, work, max_nonce, hashes_done);
 #endif
-#ifdef HAVE_SHA256_4WAY
+#if defined(__SSE2__) && defined(USE_ASM)
 	if (sha256_use_4way())
 		return scanhash_sha256d_vips_4way(thr_id, work, max_nonce, hashes_done);
 #endif
@@ -39,7 +118,7 @@ int scanhash_sha256d_vips(int thr_id, struct work *work, uint32_t max_nonce, uin
 		data[3] = ++n;
 		sha256d_ms_vips(hash, data, midstate, prehash);
 
-		if (1) {
+		if (unlikely(swab32(hash[7]) <= Htarg)) {
 			pdata[19] = data[3];
 			sha256d_181_swap(hash, pdata);
 			if (fulltest(hash, ptarget)) {
@@ -55,21 +134,21 @@ int scanhash_sha256d_vips(int thr_id, struct work *work, uint32_t max_nonce, uin
 	return 0;
 }
 
-#ifdef HAVE_SHA256_4WAY
-void sha256_init_128(__m128i *state)
+#if defined(__SSE2__) && defined(USE_ASM)
+static inline void sha256_init_128(__m128i *state)
 {
-	for (int i = 0; i < 8; i++)
+	for(size_t i = 0; i < 8; i++)
 		state[i] =  sha256_h_128[i];
 }
-#endif /* HAVE_SHA256_4WAY */
+#endif /* __SSE2__ */
 
-#ifdef HAVE_SHA256_8WAY
-void sha256_init_256(__m256i *state)
+#if defined(__AVX2__) && defined(USE_ASM)
+static inline void sha256_init_256(__m256i *state)
 {
-	for (int i = 0; i < 8; i++)
+	for(size_t i = 0; i < 8; i++)
 		state[i] =  sha256_h_256[i];
 }
-#endif /* HAVE_SHA256_4WAY */
+#endif /* __SSE2__ */
 
 static inline void sha256d_preextend(uint32_t *W)
 {
@@ -99,7 +178,7 @@ static inline void sha256d_prehash(uint32_t *S, const uint32_t *W)
 	RNDr(S, W, 2);
 }
 
-static void sha256d_181_swap(uint32_t *hash, const uint32_t *data)
+static inline void sha256d_181_swap(uint32_t *hash, const uint32_t *data)
 {
 	uint32_t S[16];
 	int i;
@@ -107,7 +186,7 @@ static void sha256d_181_swap(uint32_t *hash, const uint32_t *data)
 	sha256_init(S);
 	sha256_transform(S, data, 0);
 	sha256_transform(S, data + 16, 0);
-    sha256_transform(S, data + 32, 0);
+	sha256_transform(S, data + 32, 0);
 	memcpy(S + 8, sha256d_hash1 + 8, 32);
 	sha256_init(hash);
 	sha256_transform(hash, S, 0);
@@ -133,7 +212,7 @@ static inline void sha256d_ms_vips(uint32_t *hash, uint32_t *W,
 	uint32_t t0, t1;
 	int i;
 
-    memcpy(S + 18, W + 18, sizeof(uint32_t) * 14);
+	memcpy(S + 18, W + 18, sizeof(uint32_t) * 14);
 
 	W[18] +=                     s0(W[ 3]);
 	W[19] +=                                 W[ 3];
@@ -178,7 +257,7 @@ static inline void sha256d_ms_vips(uint32_t *hash, uint32_t *W,
 	RNDr(S, W, 19);
 	RNDr(S, W, 20);
 	RNDr(S, W, 21);
-    RNDr(S, W, 22);
+	RNDr(S, W, 22);
 	RNDr(S, W, 23);
 	RNDr(S, W, 24);
 	RNDr(S, W, 25);
@@ -297,7 +376,7 @@ static inline void sha256d_ms_vips(uint32_t *hash, uint32_t *W,
 		S[i] += S2[i];
 
 
-    memcpy(W + 18, S + 18, sizeof(uint32_t) * 14);
+	memcpy(W + 18, S + 18, sizeof(uint32_t) * 14);
 
 
 	//second
@@ -324,9 +403,9 @@ static inline void sha256d_ms_vips(uint32_t *hash, uint32_t *W,
 	}
 	S[60] = s1(S[58]) + S[53] + s0(S[45]) + S[44];
 
-    sha256_init(hash);
+	sha256_init(hash);
 
-    RNDr(hash, S,  0);
+	RNDr(hash, S,  0);
 	RNDr(hash, S,  1);
 	RNDr(hash, S,  2);
 	RNDr(hash, S,  3);
@@ -390,7 +469,7 @@ static inline void sha256d_ms_vips(uint32_t *hash, uint32_t *W,
 	hash[7] += hash[3] + S1(hash[0]) + Ch(hash[0], hash[1], hash[2]) + S[60] + sha256_k[60] + sha256_h[7];
 }
 
-#ifdef HAVE_SHA256_4WAY
+#if defined(__SSE2__) && defined(USE_ASM)
 static inline int scanhash_sha256d_vips_4way(int thr_id, struct work *work, uint32_t max_nonce, uint64_t *hashes_done)
 {
 	uint32_t _ALIGN(32) data[4 * 128];
@@ -410,11 +489,12 @@ static inline int scanhash_sha256d_vips_4way(int thr_id, struct work *work, uint
 		for (j = 0; j < 4; j++)
 			data[i * 4 + j] = data[i];
 	
-	memcpy(data + 256, pdata + 32, 64);
-	sha256d_preextend2(data + 256);
+	const size_t offset = 64 * 4;
+	memcpy(data + offset, pdata + 32, 64);
+	sha256d_preextend2(data + offset);
 	for (i = 63; i >= 0; i--)
 		for (j = 0; j < 4; j++)
-			data[i * 4 + j + 256] = data[i + 256];
+			data[i * 4 + j + offset] = data[i + offset];
 
 
 	sha256_init(midstate);
@@ -435,7 +515,7 @@ static inline int scanhash_sha256d_vips_4way(int thr_id, struct work *work, uint
 		sha256d_vips_ms_4way((__m128i*)hash, (__m128i*)data, (__m128i*)midstate, (__m128i*)prehash);
 		
 		for (i = 0; i < 4; i++) {
-			if (swab32(hash[4 * 7 + i]) <= Htarg) {
+			if (unlikely(swab32(hash[4 * 7 + i]) <= Htarg)) {
 				pdata[19] = data[4 * 3 + i];
 				sha256d_181_swap(hash, pdata);
 				if (fulltest(hash, ptarget)) {
@@ -722,9 +802,9 @@ static inline void sha256d_vips_ms_4way(__m128i *hash, __m128i *W,
 	hash[0] = _mm_add_epi32(_mm_add_epi32(_mm_add_epi32(_mm_add_epi32(_mm_add_epi32(hash[0], hash[4]), S1_128(hash[1])), Ch_128(hash[1], hash[2], hash[3])), S[59]), sha256_k_128[59]);
 	hash[7] = _mm_add_epi32(_mm_add_epi32(_mm_add_epi32(_mm_add_epi32(_mm_add_epi32(_mm_add_epi32(hash[7], hash[3]), S1_128(hash[0])), Ch_128(hash[0], hash[1], hash[2])), S[60]), sha256_k_128[60]), sha256_h_128[7]);
 }
-#endif /* HAVE_SHA256_4WAY */
+#endif /* __SSE2__ */
 
-#ifdef HAVE_SHA256_8WAY
+#if defined(__AVX2__) && defined(USE_ASM)
 static inline int scanhash_sha256d_vips_8way(int thr_id, struct work *work, uint32_t max_nonce, uint64_t *hashes_done)
 {
 	uint32_t _ALIGN(32) data[8 * 128];
@@ -744,11 +824,12 @@ static inline int scanhash_sha256d_vips_8way(int thr_id, struct work *work, uint
 		for (j = 0; j < 8; j++)
 			data[i * 8 + j] = data[i];
 	
-	memcpy(data + 512, pdata + 32, 64);
-	sha256d_preextend2(data + 512);
+	const size_t offset = 64 * 8;
+	memcpy(data + offset, pdata + 32, 64);
+	sha256d_preextend2(data + offset);
 	for (i = 63; i >= 0; i--)
 		for (j = 0; j < 8; j++)
-			data[i * 8 + j + 512] = data[i + 512];
+			data[i * 8 + j + offset] = data[i + offset];
 
 
 	sha256_init(midstate);
@@ -769,7 +850,7 @@ static inline int scanhash_sha256d_vips_8way(int thr_id, struct work *work, uint
 		sha256d_vips_ms_8way((__m256i*)hash, (__m256i*)data, (__m256i*)midstate, (__m256i*)prehash);
 		
 		for (i = 0; i < 8; i++) {
-			if (swab32(hash[8 * 7 + i]) <= Htarg) {
+			if (unlikely(swab32(hash[8 * 7 + i]) <= Htarg)) {
 				pdata[19] = data[8 * 3 + i];
 				sha256d_181_swap(hash, pdata);
 				if (fulltest(hash, ptarget)) {
@@ -794,7 +875,7 @@ static inline void sha256d_vips_ms_8way(__m256i *hash, __m256i *W,
 	__m256i t0, t1;
 	int i;
 
-    memcpy(S + 18, W + 18, sizeof(uint32_t) * 8 * 14);
+	memcpy(S + 18, W + 18, sizeof(uint32_t) * 8 * 14);
 
 	W[18] = _mm256_add_epi32(W[18], s0_256(W[ 3]));
 	W[19] = _mm256_add_epi32(W[19], W[ 3]);
@@ -964,11 +1045,11 @@ static inline void sha256d_vips_ms_8way(__m256i *hash, __m256i *W,
 		S[i] = _mm256_add_epi32(S[i], S2[i]);
 
 
-    memcpy(W + 18, S + 18, sizeof(uint32_t) * 8 * 14);
+	memcpy(W + 18, S + 18, sizeof(uint32_t) * 8 * 14);
 
 
-    //second
-    memcpy(S + 8, sha256d_hash1_256 + 8, sizeof(uint32_t) * 8 * 8);
+	//second
+	memcpy(S + 8, sha256d_hash1_256 + 8, sizeof(uint32_t) * 8 * 8);
 
 	S[16] = _mm256_add_epi32(s0_256(S[ 1]), S[ 0]);
 	S[17] = _mm256_add_epi32(_mm256_add_epi32(s1_256(sha256d_hash1_256[15]), s0_256(S[ 2])), S[ 1]);
@@ -1058,7 +1139,7 @@ static inline void sha256d_vips_ms_8way(__m256i *hash, __m256i *W,
 	hash[0] = _mm256_add_epi32(_mm256_add_epi32(_mm256_add_epi32(_mm256_add_epi32(_mm256_add_epi32(hash[0], hash[4]), S1_256(hash[1])), Ch_256(hash[1], hash[2], hash[3])), S[59]), sha256_k_256[59]);
 	hash[7] = _mm256_add_epi32(_mm256_add_epi32(_mm256_add_epi32(_mm256_add_epi32(_mm256_add_epi32(_mm256_add_epi32(hash[7], hash[3]), S1_256(hash[0])), Ch_256(hash[0], hash[1], hash[2])), S[60]), sha256_k_256[60]), sha256_h_256[7]);
 }
-#endif /* HAVE_SHA256_8WAY */
+#endif /* __AVX2__ */
 
  void vipstarcoinhash(void *output, const void *input){
 

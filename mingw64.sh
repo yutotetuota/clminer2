@@ -23,7 +23,7 @@ windres res/icon.rc icon.o
 
 make
 
-strip -p --strip-debug --strip-unneeded cpuminer.exe
+strip -p --strip-debug --strip-unneeded vipsminer.exe
 
 if [ -e sign.sh ] ; then
 . sign.sh

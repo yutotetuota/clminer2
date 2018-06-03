@@ -932,7 +932,7 @@ static void hash_X(unsigned char *IV,const unsigned char *message,unsigned long 
 	}
 
 	memset(m,0,64);
-	memcpy(m + 63 - len/8 + ( (len & 0x7) == 0 ), message, len/8 + 1 - ( (len & 0x7) == 0 ));
+	memcpy(m + 63 - len/8 + ( (len & 0x7) == 0 ), message, (size_t)(len/8 + 1 - ( (len & 0x7) == 0 )));
 
 	// Stage 3
 	m[ 63 - len/8 ] |= (1 << (len & 0x7));

@@ -1,7 +1,7 @@
 #ifndef __MINER_H__
 #define __MINER_H__
 
-#include <cpuminer-config.h>
+#include <vipsminer-config.h>
 
 #define USER_AGENT PACKAGE_NAME "/" PACKAGE_VERSION
 #define MAX_CPUS 16
@@ -28,6 +28,9 @@
 #include <inttypes.h>
 #include <sys/time.h>
 
+#if _MSC_VER >= 1900
+#define _TIMESPEC_DEFINED
+#endif
 #include <pthread.h>
 #include <jansson.h>
 #include <curl/curl.h>
@@ -197,6 +200,9 @@ void sha256_transform_8way(uint32_t *state, const uint32_t *block, int swap);
 #endif
 
 struct work;
+#ifdef USE_OPENCL
+struct cl_ctx;
+#endif
 
 int scanhash_axiom(int thr_id, struct work *work, uint32_t max_nonce, uint64_t *hashes_done);
 int scanhash_bastion(int thr_id, struct work *work, uint32_t max_nonce, uint64_t *hashes_done);
@@ -230,6 +236,9 @@ void init_quarkhash_contexts();
 int scanhash_qubit(int thr_id, struct work *work, uint32_t max_nonce, uint64_t *hashes_done);
 int scanhash_sha256d(int thr_id, struct work *work, uint32_t max_nonce, uint64_t *hashes_done);
 int scanhash_sha256d_vips(int thr_id, struct work *work, uint32_t max_nonce, uint64_t *hashes_done);
+#ifdef USE_OPENCL
+int scanhash_sha256d_vips_cl(int thr_id, struct work *work, uint32_t max_nonce, uint64_t *hashes_done, struct cl_ctx *cl);
+#endif
 unsigned char *scrypt_buffer_alloc(int N);
 int scanhash_scrypt(int thr_id, struct work *work, uint32_t max_nonce, uint64_t *hashes_done,
 					unsigned char *scratchbuf, uint32_t N);
