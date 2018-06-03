@@ -89,9 +89,9 @@ Dependencies
 
 Download
 ========
- * Windows releases: https://github.com/konbu000/vipsminer/releases
- * Git tree:   https://github.com/konbu000/vipsminer
-   * Clone with `git clone https://github.com/konbu000/vipsminer`
+ * Windows releases: https://github.com/inoue343/vipsminer/releases
+ * Git tree:   https://github.com/inoue343/vipsminer
+   * Clone with `git clone https://github.com/inoue343/vipsminer`
 
 Build
 =====
@@ -196,7 +196,7 @@ Lucas Jones :
 Credits
 =======
 vipsminer was forked from pooler's CPUMiner, and has been started by Lucas Jones.
-* [konbu000](https://github.com/konbu000) supported vipstarcoin
+* [konbu000](https://github.com/inoue343) supported vipstarcoin
 
 License
 =======

@@ -3534,7 +3534,7 @@ static int thread_create(struct thr_info *thr, void* func)
 
 static void show_credits()
 {
-	printf("** " PACKAGE_NAME " " PACKAGE_VERSION " by konbu000@github **\n");
+	printf("** " PACKAGE_NAME " " PACKAGE_VERSION " by inoue343@github **\n");
 	printf("VIPS donation address: VWWWWWWWpja1ScsE2UEKH8hnbkWiKaMJXA (konbu000)\n\n");
 }
 
