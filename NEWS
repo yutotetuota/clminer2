@@ -1,3 +1,6 @@
+vipsminer Version 1.01
+- Fix parse of option
+
 vipsminer Version 1.00
 - Add sha256d(vipstar) algo
 - Add sha256d(vipstarcl) algo

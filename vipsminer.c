@@ -3389,7 +3389,7 @@ void parse_arg(int key, char *arg)
 		for(i = 0; i < (int)strlen(arg); i++){
 			if(arg[i] == ','){
 				if(arg[i] == arg[i - 1] || i == 0) show_usage_and_exit(1);
-				*p2++;
+				(*p2)++;
 			}
 		}
 

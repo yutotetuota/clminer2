@@ -76,7 +76,7 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "FileVersion", "1.00"
+            VALUE "FileVersion", "1.01"
             VALUE "LegalCopyright", "Copyright (C) 2018"
             VALUE "ProductName", "vipsminer"
             VALUE "ProductVersion", "1..00"
