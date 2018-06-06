@@ -64,6 +64,9 @@ __kernel void sha256d_vips_ms_cl(__global uint *hash)\n
 		W_4[i] = hash_4[i];\n
 
 	#else
+	#ifdef USE_UNROLL
+	#pragma unroll
+	#endif
 	for(int i = 0; i < 128 + 8 + 8; i++)\n
 		W[i] = hash[4 + i];\n
 
@@ -420,6 +423,9 @@ __kernel void sha256d_vips_ms_cl(__global uint *hash)\n
 		}
 		#else
 		uint *h_ptr = (uint*)&h;
+		#ifdef USE_UNROLL
+		#pragma unroll
+		#endif
 		for(int k = 0; k < VECTOR_WIDTH; k++){
 			if(swab32(h_ptr[k]) <= Htarg){
 				hash[1] = ((uint*)&h)[k];

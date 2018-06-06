@@ -1,6 +1,7 @@
 #ifndef _VIPSTARCOIN_CL_H_
 #define _VIPSTARCOIN_CL_H_
 
+#include <stdbool.h>
 #include <stdint.h>
 #ifdef __APPLE__
 #include <OpenCL/opencl.h>
@@ -27,6 +28,7 @@ struct cl_device {
 	cl_device_type device_type;
 	cl_int vector_width;
 	cl_uint vendor_id;
+	cl_uint max_compute_unit;
 	char device_name[2048];
 };
 
@@ -36,13 +38,24 @@ enum VENDOR{
 	INTEL = 0x8086
 };
 
+enum DISABLE_FLAG{
+	DISABLE_NVIDIA = 1 << 0,
+	DISABLE_AMD = 1 << 1,
+	DISABLE_INTEL = 1 << 2,
+	DISABLE_CPU = 1 << 3,
+	DISABLE_GPU = 1 << 4,
+	DISABLE_ACCELERATOR = 1 << 5,
+	DISABLE_OTHER = 1 << 6
+};
+
 struct cl_ctx* create_cl_ctx();
 int cl_init(struct cl_ctx *c, struct cl_device * const device);
 int cl_finish(struct cl_ctx *c);
 void cl_release(struct cl_ctx *c);
 int get_cl_device_count();
 int get_cl_device(struct cl_device *devices, size_t buf_size);
-const char* device_type_str(struct cl_ctx *device);
+const char* device_type_str(cl_device_type device_type);
+bool is_disable(struct cl_device* const device, int disable_flag);
 void show_device_info();
 int cl_write_buffer(struct cl_ctx *c, const void *buf, size_t size);
 int cl_release_buffer(struct cl_ctx *c);

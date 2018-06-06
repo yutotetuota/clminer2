@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "cl.h"
 #include "../miner.h"
 
@@ -41,12 +42,28 @@ void show_device_info(){
 			char vendor_name[1024] = { 0 };
 			char platform_name[1024] = { 0 };
 			char opencl_version[1024] = { 0 };
+			cl_device_type device_type;
 			ret = clGetDeviceInfo(device_id[j], CL_DEVICE_NAME, sizeof(device_name), device_name, NULL);
 			ret = clGetDeviceInfo(device_id[j], CL_DEVICE_VENDOR, sizeof(vendor_name), vendor_name, NULL);
 			ret = clGetDeviceInfo(device_id[j], CL_DEVICE_VERSION, sizeof(opencl_version), opencl_version, NULL);
 			ret = clGetPlatformInfo(platform_id[i], CL_PLATFORM_NAME, sizeof(platform_name), platform_name, NULL);
-			
-			printf("Device ID:%d\n  Platform name\t\t%s\n  Device name\t\t%s\n  Device vendor\t\t%s\n  OpenCL version\t%s\n\n", (int)(offset + j), platform_name, device_name, vendor_name, opencl_version);
+			ret = clGetDeviceInfo(device_id[j], CL_DEVICE_TYPE, sizeof(cl_device_type), &device_type, NULL);
+
+			printf("Device ID:%d\n  Platform name\t\t%s\n  Device name\t\t%s\n  Device vendor\t\t%s\n  Device type\t\t%s\n  OpenCL version\t%s\n", (int)(offset + j), platform_name, device_name, vendor_name, device_type_str(device_type), opencl_version);
+
+			cl_uint vendor_id;
+			ret = clGetDeviceInfo(device_id[j], CL_DEVICE_VENDOR_ID, sizeof(cl_uint), &vendor_id, NULL);
+			if(vendor_id == NVIDIA){
+				cl_uint bus;
+				cl_uint slot;
+				ret = clGetDeviceInfo(device_id[j], 0x4008, sizeof(cl_uint), &bus, NULL);
+				ret = clGetDeviceInfo(device_id[j], 0x4009, sizeof(cl_uint), &slot, NULL);
+
+				printf("  PCI bus ID\t\t%u\n", bus);
+				printf("  PCI slot ID\t\t%u\n", slot);
+			}
+
+			puts("");
 		}
 		offset += num_devices;
 		free(device_id);
@@ -56,15 +73,17 @@ void show_device_info(){
 int get_cl_device_count(){
 	cl_int ret;
 	cl_uint num_platforms;
-	ret = clGetPlatformIDs(114514, NULL, &num_platforms); if(ret != CL_SUCCESS) return ret;
+	ret = clGetPlatformIDs(0, NULL, &num_platforms); if(ret != CL_SUCCESS) return ret;
 	cl_platform_id *platform_id = (cl_platform_id*)calloc(num_platforms, sizeof(cl_platform_id));
 
 	ret = clGetPlatformIDs(num_platforms, platform_id, NULL); if(ret != CL_SUCCESS) return ret;
 
-	cl_uint devices = 0;
 	cl_uint total_devices = 0;
 	for(size_t i = 0; i < num_platforms; i++){
+		cl_uint devices = 0;
 		ret = clGetDeviceIDs(platform_id[i], CL_DEVICE_TYPE_ALL, 0, NULL, &devices); if(ret != CL_SUCCESS) return ret;
+		cl_device_id device_id[2048];
+		ret = clGetDeviceIDs(platform_id[i], CL_DEVICE_TYPE_ALL, sizeof(devices), device_id, &devices);
 		total_devices += devices;
 	}
 
@@ -81,33 +100,39 @@ int get_cl_device(struct cl_device *devices, size_t num_entries){
 	cl_platform_id *platform_id = (cl_platform_id*)calloc(num_platforms, sizeof(cl_platform_id));
 	ret = clGetPlatformIDs(num_platforms, platform_id, NULL); if(ret != CL_SUCCESS) return ret;
 
-
 	int offset = 0;
 	for(size_t i = 0; i < num_platforms; i++){
-		cl_uint num_devices = 0;		
-		ret = clGetDeviceIDs(platform_id[i], CL_DEVICE_TYPE_ALL, (cl_uint)num_entries, NULL, &num_devices); if(ret != CL_SUCCESS) return ret;
-
-		cl_device_id *device_id = (cl_device_id*)calloc(num_devices, sizeof(cl_device_id));
+		cl_uint num_devices = 0;
+		ret = clGetDeviceIDs(platform_id[i], CL_DEVICE_TYPE_ALL, 0, NULL, &num_devices); if(ret != CL_SUCCESS) return ret;
+		cl_device_id *device_id = (cl_device_id*)calloc(num_entries, sizeof(cl_device_id));
 		ret = clGetDeviceIDs(platform_id[i], CL_DEVICE_TYPE_ALL, (cl_uint)num_entries, device_id, &num_devices); if(ret != CL_SUCCESS) return ret;
-
+		
 		for(size_t j = 0; j < num_devices; j++){
 			devices[offset + j].platform_id = platform_id[i];
 			devices[offset + j].device_id =  device_id[j];
 
 			char device_name[1024] = { 0 };
 			char vendor_name[1023] = { 0 };
-			ret = clGetDeviceInfo(device_id[j], CL_DEVICE_NAME, sizeof(device_name), device_name, NULL); if(ret != CL_SUCCESS) return ret;
-			ret = clGetDeviceInfo(device_id[j], CL_DEVICE_VENDOR, sizeof(vendor_name), vendor_name, NULL); if(ret != CL_SUCCESS) return ret;
+			ret = clGetDeviceInfo(devices[offset + j].device_id, CL_DEVICE_NAME, sizeof(device_name), device_name, NULL); if(ret != CL_SUCCESS) return ret;
+			ret = clGetDeviceInfo(devices[offset + j].device_id, CL_DEVICE_VENDOR, sizeof(vendor_name), vendor_name, NULL); if(ret != CL_SUCCESS) return ret;
 
 			sprintf(devices[offset + j].device_name , "%s %s", vendor_name, device_name);
 
-			ret = clGetDeviceInfo(device_id[j], CL_DEVICE_NATIVE_VECTOR_WIDTH_INT, sizeof(cl_int), &devices[offset + j].vector_width, NULL); if(ret != CL_SUCCESS) return ret;
-			ret = clGetDeviceInfo(device_id[j], CL_DEVICE_VENDOR_ID, sizeof(cl_uint), &devices[offset + j].vendor_id, NULL); if(ret != CL_SUCCESS) return ret;
-			ret = clGetDeviceInfo(device_id[j], CL_DEVICE_TYPE, sizeof(cl_device_type), &devices[offset + j].device_type, NULL); if(ret != CL_SUCCESS) return ret;
-		}
+			ret = clGetDeviceInfo(devices[offset + j].device_id, CL_DEVICE_NATIVE_VECTOR_WIDTH_INT, sizeof(cl_int), &devices[offset + j].vector_width, NULL); if(ret != CL_SUCCESS) return ret;
+			ret = clGetDeviceInfo(devices[offset + j].device_id, CL_DEVICE_VENDOR_ID, sizeof(cl_uint), &devices[offset + j].vendor_id, NULL); if(ret != CL_SUCCESS) return ret;
+			ret = clGetDeviceInfo(devices[offset + j].device_id, CL_DEVICE_TYPE, sizeof(cl_device_type), &devices[offset + j].device_type, NULL); if(ret != CL_SUCCESS) return ret;
 
-		free(device_id);
+			//get AMD board name
+			if(devices[offset + j].vendor_id == AMD && devices[offset + j].device_type == CL_DEVICE_TYPE_GPU){
+				ret = clGetDeviceInfo(devices[offset + j].device_id, 0x4038, sizeof(device_name), device_name, NULL); 
+				if(ret == CL_SUCCESS){
+					memset(devices[offset + j].device_name, 0, sizeof(devices[offset + j].device_name));
+					sprintf(devices[offset + j].device_name , "%s %s", vendor_name, device_name);
+				}
+			}
+		}
 		offset += num_devices;
+		free(device_id);
 	}
 
 	free(platform_id);
@@ -115,14 +140,47 @@ int get_cl_device(struct cl_device *devices, size_t num_entries){
 	return ret;
 }
 
-const char* device_type_str(struct cl_ctx *ctx){
-	switch(ctx->device->device_type){
+
+const char* device_type_str(cl_device_type device_type){
+	switch(device_type){
 		case CL_DEVICE_TYPE_CPU: return "CPU";
 		case CL_DEVICE_TYPE_GPU: return "GPU";
 		case CL_DEVICE_TYPE_ACCELERATOR: return "ACCELERATOR";
-		default: return "CPU";
+		default: return "UNKNOWN";
 	}
 }
+
+bool is_disable(struct cl_device* const device, int disable_flag){
+	if(disable_flag & DISABLE_CPU){
+		if(device->device_type == CL_DEVICE_TYPE_CPU) return true;
+	}
+	if(disable_flag & DISABLE_GPU){
+		if(device->device_type == CL_DEVICE_TYPE_GPU) return true;
+	}
+	if(disable_flag & DISABLE_ACCELERATOR){
+		if(device->device_type == CL_DEVICE_TYPE_ACCELERATOR) return true;
+	}
+	if(disable_flag & DISABLE_INTEL){
+		if(device->vendor_id == INTEL) return true;
+	}
+	if(disable_flag & DISABLE_AMD){
+		if(device->vendor_id == AMD) return true;
+	}
+	if(disable_flag & DISABLE_NVIDIA){
+		if(device->vendor_id == NVIDIA) return true;
+	}
+	if(disable_flag & DISABLE_OTHER){
+		if(device->vendor_id != INTEL && device->vendor_id != AMD && device->vendor_id != NVIDIA) return true;
+	}
+
+	return false;
+}
+
+bool is_nvidia(struct cl_device* const device){
+	return device->vendor_id == NVIDIA;
+}
+
+
 
 struct cl_ctx* create_cl_ctx(){
 	return (struct cl_ctx*)calloc(1, sizeof(struct cl_ctx));
@@ -137,15 +195,15 @@ int cl_init(struct cl_ctx *c, struct cl_device* const device){
 	char option[256] = { 0 };
 
 	if(device->vendor_id == NVIDIA && device->device_type == CL_DEVICE_TYPE_GPU){
-		sprintf(option, "-cl-nv-maxrregcount=128 -D VECTOR_WIDTH_%d", device->vector_width);
+		sprintf(option, "-cl-nv-maxrregcount=128 -D USE_UNROLL -D VECTOR_WIDTH_%d", device->vector_width);
 	} else {
-		sprintf(option, "-D VECTOR_WIDTH_%d", device->vector_width);
+		sprintf(option, "-D USE_UNROLL -D VECTOR_WIDTH_%d", device->vector_width);
 	} 
 
 	c->context = clCreateContext( NULL, 1, &device->device_id, NULL, NULL, &ret); if(ret != CL_SUCCESS) return ret;
 	c->command_queue = clCreateCommandQueue(c->context, device->device_id, CL_QUEUE_PROFILING_ENABLE, &ret); if(ret != CL_SUCCESS) return ret;
 	c->program = clCreateProgramWithSource(c->context, 1, (const char **)&source_str, &source_size, &ret); if(ret != CL_SUCCESS) return ret;
-	ret = clBuildProgram(c->program, 1, &device->device_id, option, NULL, NULL); if(ret != CL_SUCCESS) return ret;
+	ret = clBuildProgram(c->program, 1, &device->device_id, option, NULL, NULL);
 
 
 	if(ret) {
@@ -169,13 +227,14 @@ int cl_init(struct cl_ctx *c, struct cl_device* const device){
 
 	cl_int compute_units;
 	ret = clGetDeviceInfo(device->device_id, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_int), &compute_units, NULL); if(ret != CL_SUCCESS) return ret;
+	device->max_compute_unit = compute_units;
 
 	switch(device->vendor_id){
 		case NVIDIA :
 			{
 				switch(device->device_type){
 					case CL_DEVICE_TYPE_GPU: 
-						c->num_cores = compute_units * 32 * 4 * 64; 
+						c->num_cores = compute_units * 32 * 4 * 128; 
 						c->work_group_size = 32; 
 						break;
 					case CL_DEVICE_TYPE_CPU: 

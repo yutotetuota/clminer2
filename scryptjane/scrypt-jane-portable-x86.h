@@ -82,12 +82,12 @@
 		#include <xmmintrin.h>
 		typedef __m64 qmm;
 		typedef __m128 xmm;
-		typedef __m128d xmmd;
 	#endif
 	#if defined(X86_INTRINSIC_SSE2)
 		#define X86_INTRINSIC_SSE2
 		#include <emmintrin.h>
 		typedef __m128i xmmi;
+		typedef __m128d xmmd;
 	#endif
 	#if defined(X86_INTRINSIC_SSSE3)
 		#define X86_INTRINSIC_SSSE3

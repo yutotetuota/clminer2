@@ -296,9 +296,12 @@ int opt_api_listen = 4048; /* 0 to disable */
 
 bool use_opencl = false;
 int *device_id = NULL;
+int *disable_device_id = NULL;
+int disable_flag = 0;
 int *vector_width_params = NULL;
 int *intensity_params = NULL;
 int opt_n_devices = 0;
+int opt_n_disable_devices = 0;
 int opt_n_vector_width = 0;
 int opt_n_intensity = 0;
 struct cl_ctx *cl;
@@ -428,7 +431,16 @@ Options:\n\
   -d, --use-device=N,M,L specify the OpenCL device ID to use.(ex:--use-device=0,2,1 > thread0:device0, thread1:device2, thread2:device1 )\n\
   -l, --list-device     show all OpemCL device\n\
   -i, --intensity       intensity for OpenCL\n\
-  -w, --vector-width    set vector width of OpemCL device\n"
+  -w, --vector-width    set vector width of OpemCL device\n\
+  -d, --use-device=N,M,L specify the OpenCL device ID to use.(ex:--use-device=0,2,1 > thread0:device0, thread1:device2, thread2:device1 )\n\
+      --disable-device=N,M,L specify the device to be disabled.(ex:--use-device=0,2,1 > thread0:device0, thread1:device2, thread2:device1 )\n\
+      --disable-cpu     disable CPU\n\
+      --disable-gpu     disable GPU\n\
+      --disable-accelerator disable Accelerator\n\
+      --disable-intel   disable Intel`s device\n\
+      --disable-nvidia  disable NVIDIA`s device\n\
+      --disable-amd     disable AMD`s device\n\
+      --disable-other   disable other device\n"
 #endif
 "\
   -c, --config=FILE     load a JSON-format configuration file\n\
@@ -501,7 +513,16 @@ static struct option const options[] = {
 #ifdef USE_OPENCL
 	{ "intensity", 1, NULL, 'i' },
 	{ "list-device", 0, NULL, 'l' },
+	{ "vector-width", 1, NULL, 'w' },
 	{ "use-device", 1, NULL, 'd' },
+	{ "disable-device", 0, NULL, 1038 },
+	{ "disable-cpu", 0, NULL, 1031 },
+	{ "disable-gpu", 0, NULL, 1032 },
+	{ "disable-accelerator", 1, NULL, 1033 },
+	{ "disable-intel", 0, NULL, 1034 },
+	{ "disable-nvidia", 0, NULL, 1035 },
+	{ "disable-amd", 0, NULL, 1036 },
+	{ "disable-other", 0, NULL, 1037 },
 	{ "vector-width", 1, NULL, 'w' },
 #endif
 	{ "version", 0, NULL, 'V' },
@@ -2498,7 +2519,7 @@ static void *miner_thread(void *userdata)
 				#ifdef USE_OPENCL
 				if(use_opencl){
 					const char *device_type;
-					device_type = device_type_str(&cl[thr_id]);
+					device_type = device_type_str(cl[thr_id].device->device_type);
 					applog(LOG_INFO, "%s #%d: %s", device_type, thr_id, str);
 				}else
 				#endif
@@ -2529,7 +2550,7 @@ static void *miner_thread(void *userdata)
 					#ifdef USE_OPENCL
 					if(use_opencl){
 						const char *device_type;
-						device_type = device_type_str(&cl[thr_id]);
+						device_type = device_type_str(cl[thr_id].device->device_type);
 						applog(LOG_INFO, "%s #%d: %s", device_type, thr_id, str);
 					}else
 					#endif
@@ -2865,6 +2886,9 @@ static void show_version_and_exit(void)
 	printf(" built "
 #ifdef _MSC_VER
 	 "with VC++ %d", msver());
+#elif defined(__clang__)
+	 "with Clang ");
+	printf("%d.%d.%d", __clang_major__, __clang_minor__, __clang_patchlevel__);
 #elif defined(__GNUC__)
 	 "with GCC ");
 	printf("%d.%d.%d", __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
@@ -3373,6 +3397,10 @@ void parse_arg(int key, char *arg)
 		p2 = &opt_n_devices;
 		p3 = &device_id;
 		goto SPLIT;
+	case 1038:
+		p2 = &opt_n_disable_devices;
+		p3 = &disable_device_id;
+		goto SPLIT;
 	case 'w':
 		p2 = &opt_n_vector_width;
 		p3 = &vector_width_params;
@@ -3416,6 +3444,27 @@ void parse_arg(int key, char *arg)
 	case 'l':
 		show_device_info();
 		exit(0);
+	case 1031:
+		disable_flag |= DISABLE_CPU;
+		break;
+	case 1032:
+		disable_flag |= DISABLE_GPU;
+		break;
+	case 1033:
+		disable_flag |= DISABLE_ACCELERATOR;
+		break;
+	case 1034:
+		disable_flag |= DISABLE_INTEL;
+		break;
+	case 1035:
+		disable_flag |= DISABLE_NVIDIA;
+		break;
+	case 1036:
+		disable_flag |= DISABLE_AMD;
+		break;
+	case 1037:
+		disable_flag |= DISABLE_OTHER;
+		break;
 #endif
 	case 'V':
 		show_version_and_exit();
@@ -3584,11 +3633,6 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	if (!opt_n_threads)
-		opt_n_threads = num_cpus;
-	if (!opt_n_threads)
-		opt_n_threads = 1;
-
 	if (opt_algo == ALGO_QUARK) {
 		init_quarkhash_contexts();
 	} else if(opt_algo == ALGO_CRYPTONIGHT || opt_algo == ALGO_CRYPTOLIGHT) {
@@ -3609,9 +3653,32 @@ int main(int argc, char *argv[]) {
 
 #ifdef USE_OPENCL
 	if(opt_algo == ALGO_VIPSTAR_CL) {
+		if(opt_n_devices && opt_n_disable_devices){
+			fprintf(stderr, "--use-device and --disable-device can`t be specified at the same time.\n");
+			show_usage_and_exit(1);
+		}
+
 		int num_device = get_cl_device_count();
+
+		if(num_device < 1){
+			applog(LOG_ERR, "OpenCL device is not found.");
+			exit(1);
+		}
+
+		if (opt_debug) {
+			applog(LOG_DEBUG, "Found %d OpenCL devices.", num_device);
+		}
+
 		struct cl_device *devices = (struct cl_device*)calloc(num_device, sizeof(struct cl_device));
 		get_cl_device(devices, num_device);
+
+		if (opt_debug) {
+			for(size_t i = 0; i < num_device; i++){
+				applog(LOG_DEBUG, "Device ID: %d", i);
+				applog(LOG_DEBUG, "Device name: %s", devices[i].device_name);
+				applog(LOG_DEBUG, "Device type: %s", device_type_str(devices[i].device_type));
+			}
+		}
 
 		for(int i = 0; i < opt_n_vector_width; i++)
 			if(vector_width_params[i] != 1 && vector_width_params[i] > 16 && (vector_width_params[i] % 2 != 0 || vector_width_params[i] < 0))
@@ -3624,25 +3691,42 @@ int main(int argc, char *argv[]) {
 
 		if(opt_n_devices == 0){
 			opt_n_devices = num_device;
-			device_id = (int*)calloc(opt_n_devices, sizeof(int));
-			
-			for(int i = 0; i < opt_n_devices; i++)
-				device_id[i] = (int)i;
+			device_id = (int*)calloc(num_device, sizeof(int));
+			int *ptr = device_id;
+			for(int i = 0; i < num_device; i++){
+				for(int j = 0; j < opt_n_disable_devices; j++){
+					if(disable_device_id[j] == i){
+						opt_n_devices--;
+						goto LOOP_END;
+					}
+				}
+
+				if(is_disable(&devices[i], disable_flag)){
+					opt_n_devices--;
+					goto LOOP_END;
+				}
+				
+				*ptr = i;
+				ptr++;
+LOOP_END:;
+			}
 		}
-		opt_n_threads = min(opt_n_devices, min(opt_n_threads, num_device));
+		opt_n_threads = min(opt_n_devices, num_device);
 
 		cl = (struct cl_ctx*)calloc(opt_n_threads, sizeof(struct cl_ctx));
 
-		for(int i = 0; i < opt_n_threads; i++){			
-			if(device_id[i] >= num_device) exit(1);
-
+		for(int i = 0; i < opt_n_threads; i++){
+			if(device_id[i] >= num_device) {
+				applog(LOG_ERR, "Device ID %d is not found.", device_id[i]);
+				exit(1);
+			}
 
 			if(i < opt_n_vector_width && vector_width_params[i] != 0)
-				devices[device_id[i]].vector_width = vector_width_params[i];			
+				devices[device_id[i]].vector_width = vector_width_params[i];
 
 			int ret = cl_init(&cl[i], &devices[device_id[i]]);
 
-			if(i < opt_n_intensity && intensity_params[i] != 0)
+			if(i < opt_n_intensity && intensity_params[i] > 0)
 				cl[i].num_cores = 1 << intensity_params[i];
 
 			if(cl[i].device == NULL){
@@ -3651,15 +3735,20 @@ int main(int argc, char *argv[]) {
 			}
 
 			if(!ret){
-				applog(LOG_NOTICE, "Initialized %s #%d: %s %d threads", device_type_str(&cl[i]), i, &cl[i].device->device_name, cl[i].num_cores);
+				applog(LOG_NOTICE, "Initialized %s #%d: %s %d threads", device_type_str(cl[i].device->device_type), i, &cl[i].device->device_name, cl[i].num_cores);
 			} else {
-				applog(LOG_ERR, "Failed to initialize. OpenCL error code: %d %s #%d: %s", ret, device_type_str(&cl[i]), i, &cl[i].device->device_name);
+				applog(LOG_ERR, "Failed to initialize. OpenCL error code: %d %s #%d: %s", ret, device_type_str(cl[i].device->device_type), i, &cl[i].device->device_name);
 			}
 		}
 		
 		use_opencl = true;
 	}
 #endif
+
+	if (!opt_n_threads && !use_opencl)
+		opt_n_threads = num_cpus;
+	if (!opt_n_threads && !use_opencl)
+		opt_n_threads = 1;
 
 	if (!opt_benchmark && !rpc_url) {
 		fprintf(stderr, "%s: no URL supplied\n", argv[0]);
