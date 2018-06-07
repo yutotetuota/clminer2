@@ -10,9 +10,9 @@
 int scanhash_sha256d_vips_cl(int thr_id, struct work *work, uint32_t max_nonce, uint64_t *hashes_done, struct cl_ctx *cl)
 {
 	uint32_t _ALIGN(32) threads = cl[thr_id].num_cores;
-	size_t _ALIGN(32) buf_bytes = sizeof(uint32_t) * (4 + CL_HASH_SIZE + CL_DATA_SIZE + CL_MIDSTATE_SIZE);
-	uint32_t _ALIGN(32) hash[sizeof(uint32_t) * (4 + CL_HASH_SIZE + CL_DATA_SIZE + CL_MIDSTATE_SIZE)];
-	uint32_t _ALIGN(32) *data = hash + 4;
+	size_t _ALIGN(32) buf_bytes = sizeof(uint32_t) * (8 + CL_HASH_SIZE + CL_DATA_SIZE + CL_MIDSTATE_SIZE);
+	uint32_t _ALIGN(32) hash[sizeof(uint32_t) * (8 + CL_HASH_SIZE + CL_DATA_SIZE + CL_MIDSTATE_SIZE)];
+	uint32_t _ALIGN(32) *data = hash + 8;
 	uint32_t _ALIGN(32) *midstate = data + 128;
 	uint32_t _ALIGN(32) *prehash = midstate +  8;
 	uint32_t _ALIGN(32) dst[8];
@@ -46,13 +46,25 @@ int scanhash_sha256d_vips_cl(int thr_id, struct work *work, uint32_t max_nonce, 
 	hash[1] = UINT32_MAX;
 	hash[2] = Htarg;
 	uint32_t current_nonce = data[3];
+
+	//pre compute
+	uint32_t _ALIGN(32) *W16_17_s017 = hash + 4;
+	W16_17_s017[0] = data[16];
+	W16_17_s017[1] = data[17];
+	W16_17_s017[2] = s0(data[17]);
+
+	for(size_t i = 4; i < 18; i++)
+		data[i] += sha256_k[i];
+
+	for(size_t i = 0; i < 64; i++)
+		data[i + 64] += sha256_k[i];
+
 	ret = cl_write_buffer(&cl[thr_id], hash, buf_bytes);
 
 	size_t global_work_size[3] = { threads, 1, 1 };
 	size_t local_work_size[3]  = { cl[thr_id].work_group_size, 1, 1 };
 
 
-	
 	do {
 		ret = clEnqueueNDRangeKernel(cl[thr_id].command_queue, cl[thr_id].kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
 		ret = clEnqueueReadBuffer(cl[thr_id].command_queue, cl[thr_id].memobj, CL_TRUE, 0, sizeof(uint32_t) * 1, hash, 0, NULL, NULL);

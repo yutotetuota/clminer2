@@ -1,6 +1,7 @@
 Version 1.02
 - Support Mac OSX
 - Support AMD
+- Optimized vipstarcl algorithm
 
 vipsminer Version 1.01
 - Fix parse of option

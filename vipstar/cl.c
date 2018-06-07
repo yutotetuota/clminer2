@@ -195,11 +195,12 @@ int cl_init(struct cl_ctx *c, struct cl_device* const device){
 	char option[256] = { 0 };
 
 	if(device->vendor_id == NVIDIA && device->device_type == CL_DEVICE_TYPE_GPU){
-		sprintf(option, "-cl-nv-maxrregcount=128 -D USE_UNROLL -D VECTOR_WIDTH_%d", device->vector_width);
+		sprintf(option, /*-cl-nv-verbose*/"-cl-nv-maxrregcount=192 -D USE_UNROLL -D VECTOR_WIDTH_%d", device->vector_width);
+	} else if(device->vendor_id == INTEL && device->device_type == CL_DEVICE_TYPE_GPU){
+		sprintf(option, "-D USE_UNROLL -D VECTOR_WIDTH_%d", 1);
 	} else {
 		sprintf(option, "-D USE_UNROLL -D VECTOR_WIDTH_%d", device->vector_width);
-	} 
-
+	}
 	c->context = clCreateContext( NULL, 1, &device->device_id, NULL, NULL, &ret); if(ret != CL_SUCCESS) return ret;
 	c->command_queue = clCreateCommandQueue(c->context, device->device_id, CL_QUEUE_PROFILING_ENABLE, &ret); if(ret != CL_SUCCESS) return ret;
 	c->program = clCreateProgramWithSource(c->context, 1, (const char **)&source_str, &source_size, &ret); if(ret != CL_SUCCESS) return ret;
@@ -216,7 +217,7 @@ int cl_init(struct cl_ctx *c, struct cl_device* const device){
 		if(ret != CL_SUCCESS) return ret;
 	}
 
-	c->memobj = clCreateBuffer(c->context, CL_MEM_READ_WRITE, sizeof(uint32_t) * (4 + CL_HASH_SIZE + CL_DATA_SIZE + CL_MIDSTATE_SIZE), NULL, &ret); if(ret != CL_SUCCESS) return ret;
+	c->memobj = clCreateBuffer(c->context, CL_MEM_READ_WRITE, sizeof(uint32_t) * (8 + CL_HASH_SIZE + CL_DATA_SIZE + CL_MIDSTATE_SIZE), NULL, &ret); if(ret != CL_SUCCESS) return ret;
 	c->kernel = clCreateKernel(c->program, "sha256d_vips_ms_cl", &ret); if(ret != CL_SUCCESS) return ret;
 	ret = clSetKernelArg(c->kernel, 0, sizeof(cl_mem), (void*)&c->memobj); if(ret != CL_SUCCESS) return ret;
 
@@ -234,8 +235,8 @@ int cl_init(struct cl_ctx *c, struct cl_device* const device){
 			{
 				switch(device->device_type){
 					case CL_DEVICE_TYPE_GPU: 
-						c->num_cores = compute_units * 32 * 4 * 128; 
-						c->work_group_size = 32; 
+						c->num_cores = compute_units * 32 * 4 * 1024; 
+						c->work_group_size = 128; 
 						break;
 					case CL_DEVICE_TYPE_CPU: 
 						c->num_cores = compute_units * 32;
@@ -256,11 +257,11 @@ int cl_init(struct cl_ctx *c, struct cl_device* const device){
 			{
 				switch(device->device_type){
 					case CL_DEVICE_TYPE_GPU: 
-						c->num_cores = compute_units * 64 * 32; 
-						c->work_group_size = 64; 
+						c->num_cores = compute_units * 64 * 1024; 
+						c->work_group_size = 128; 
 						break;
 					case CL_DEVICE_TYPE_CPU: 
-						c->num_cores = compute_units * 32;
+						c->num_cores = compute_units * 128;
 						c->work_group_size = 1; 
 						break;
 					case CL_DEVICE_TYPE_ACCELERATOR:
@@ -279,11 +280,11 @@ int cl_init(struct cl_ctx *c, struct cl_device* const device){
 				switch(device->device_type){
 					//https://software.intel.com/sites/default/files/managed/c5/9a/The-Compute-Architecture-of-Intel-Processor-Graphics-Gen9-v1d0.pdf
 					case CL_DEVICE_TYPE_GPU: 
-						c->num_cores = compute_units * 7 * 32; 
-						c->work_group_size = 7;
+						c->num_cores = compute_units * 7 * 64; 
+						c->work_group_size = 14;
 						break;
 					case CL_DEVICE_TYPE_CPU: 
-						c->num_cores = compute_units * 32;
+						c->num_cores = compute_units * 128;
 						c->work_group_size = 1; 
 						break;
 					case CL_DEVICE_TYPE_ACCELERATOR:
@@ -302,10 +303,10 @@ int cl_init(struct cl_ctx *c, struct cl_device* const device){
 				switch(device->device_type){
 					case CL_DEVICE_TYPE_GPU: 
 						c->num_cores = compute_units * (cl_int)work_group_size_multiple * 32;
-						c->work_group_size = 7; 
+						c->work_group_size = (cl_uint)work_group_size_multiple; 
 						break;
 					case CL_DEVICE_TYPE_CPU: 
-						c->num_cores = compute_units * 32;
+						c->num_cores = compute_units * 128;
 						c->work_group_size = 1; 
 						break;
 					case CL_DEVICE_TYPE_ACCELERATOR:
