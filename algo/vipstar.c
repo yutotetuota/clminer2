@@ -81,7 +81,7 @@ int scanhash_sha256d_vips_cl(int thr_id, struct work *work, uint32_t max_nonce, 
 			}
 		}
 
-		n += threads * 32 * cl->device->vector_width;
+		n += threads * 32 * cl[thr_id].device->vector_width;
 	} while (n < max_nonce && !work_restart[thr_id].restart);
 
 	result = 0;

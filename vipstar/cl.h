@@ -49,7 +49,7 @@ enum DISABLE_FLAG{
 };
 
 struct cl_ctx* create_cl_ctx();
-int cl_init(struct cl_ctx *c, struct cl_device * const device);
+int cl_init(struct cl_ctx *c, struct cl_device * const device, bool debug);
 int cl_finish(struct cl_ctx *c);
 void cl_release(struct cl_ctx *c);
 int get_cl_device_count();

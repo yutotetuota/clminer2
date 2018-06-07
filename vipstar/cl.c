@@ -187,7 +187,7 @@ struct cl_ctx* create_cl_ctx(){
 }
 
 
-int cl_init(struct cl_ctx *c, struct cl_device* const device){
+int cl_init(struct cl_ctx *c, struct cl_device* const device, bool debug) {
 	cl_int ret;
 
 	c->device = device;
@@ -207,14 +207,13 @@ int cl_init(struct cl_ctx *c, struct cl_device* const device){
 	ret = clBuildProgram(c->program, 1, &device->device_id, option, NULL, NULL);
 
 
-	if(ret) {
+	if(debug) {
 		size_t log_size;
 		clGetProgramBuildInfo(c->program, device->device_id, CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
-		char *log = (char *) malloc(log_size);
+		char *log = (char *)malloc(log_size);
 		clGetProgramBuildInfo(c->program, device->device_id, CL_PROGRAM_BUILD_LOG, log_size, log, NULL);
-		printf("error %s\n", log);
+		printf("Compiler message: %s\n", log);
 		free(log);
-		if(ret != CL_SUCCESS) return ret;
 	}
 
 	c->memobj = clCreateBuffer(c->context, CL_MEM_READ_WRITE, sizeof(uint32_t) * (8 + CL_HASH_SIZE + CL_DATA_SIZE + CL_MIDSTATE_SIZE), NULL, &ret); if(ret != CL_SUCCESS) return ret;

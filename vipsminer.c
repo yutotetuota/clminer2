@@ -515,7 +515,7 @@ static struct option const options[] = {
 	{ "list-device", 0, NULL, 'l' },
 	{ "vector-width", 1, NULL, 'w' },
 	{ "use-device", 1, NULL, 'd' },
-	{ "disable-device", 0, NULL, 1038 },
+	{ "disable-device", 1, NULL, 1038 },
 	{ "disable-cpu", 0, NULL, 1031 },
 	{ "disable-gpu", 0, NULL, 1032 },
 	{ "disable-accelerator", 1, NULL, 1033 },
@@ -3673,7 +3673,7 @@ int main(int argc, char *argv[]) {
 		get_cl_device(devices, num_device);
 
 		if (opt_debug) {
-			for(size_t i = 0; i < num_device; i++){
+			for(int i = 0; i < num_device; i++){
 				applog(LOG_DEBUG, "Device ID: %d", i);
 				applog(LOG_DEBUG, "Device name: %s", devices[i].device_name);
 				applog(LOG_DEBUG, "Device type: %s", device_type_str(devices[i].device_type));
@@ -3724,7 +3724,7 @@ LOOP_END:;
 			if(i < opt_n_vector_width && vector_width_params[i] != 0)
 				devices[device_id[i]].vector_width = vector_width_params[i];
 
-			int ret = cl_init(&cl[i], &devices[device_id[i]]);
+			int ret = cl_init(&cl[i], &devices[device_id[i]], opt_debug);
 
 			if(i < opt_n_intensity && intensity_params[i] > 0)
 				cl[i].num_cores = 1 << intensity_params[i];

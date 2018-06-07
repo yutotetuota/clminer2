@@ -165,7 +165,7 @@ void get_defconfig_path(char *out, size_t bufsize, char *argv0)
 	snprintf(out, bufsize, "%s\\.vipsminer\\vipsminer-conf.json", getenv("HOME"));
 #endif
 	if (dir && stat(out, &info) != 0) {
-		snprintf(out, bufsize, "%s%vipsminer-conf.json", dir, sep);
+		snprintf(out, bufsize, "%s%svipsminer-conf.json", dir, sep);
 	}
 	if (stat(out, &info) != 0) {
 		out[0] = '\0';
