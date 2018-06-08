@@ -13,6 +13,9 @@
 #ifdef WIN32
 # define  _WINSOCK_DEPRECATED_NO_WARNINGS
 # include <winsock2.h>
+#endif
+
+#ifdef _MSC_VER
 # include <WS2tcpip.h>
 #endif
 

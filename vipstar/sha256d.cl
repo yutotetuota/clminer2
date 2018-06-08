@@ -42,7 +42,9 @@ OCLSTRINGIFY(
 	\n#define IOTA (vec_uint)(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)\n
 \n#endif\n
 
-//\n#pragma cl_nv_compiler_options\n
+\n#ifdef USE_CL_NV_COMPILER_OPTIONS\n
+\n#pragma cl_nv_compiler_options\n
+\n#endif\n
 
 __kernel void sha256d_vips_ms_cl(__global uint *hash)\n
 {\n

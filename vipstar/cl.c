@@ -16,6 +16,34 @@ size_t source_size =
 		#include "./sha256d.cl"
 	);
 
+const char amd_gpu_id_list[][2][23] = {
+	{"67E8:00",	"Radeon Pro WX Series"},
+	{"67EF:C0",	"Radeon Pro 460"},
+	{"67EF:C3",	"Radeon RX 460 Graphics"},
+	{"67EF:C5",	"Radeon RX 460 Graphics"},
+	{"67EF:CF",	"Radeon RX 460 Graphics"},
+	{"687F:C0",	"Radeon RX Vega"},
+	{"687F:C1",	"Radeon RX Vega"},
+	{"687F:C3",	"Radeon RX Vega"},
+	{"6980:00",	"Radeon Pro WX3100"},
+	};
+
+
+void get_amd_device_name(cl_device_id device_id, size_t dst_size, char *dst){
+	char device_name[1024] = { 0 };
+	clGetDeviceInfo(device_id, 0x4038, sizeof(device_name), device_name, NULL); 
+
+	for(size_t i = 0; i < sizeof(amd_gpu_id_list) / sizeof(amd_gpu_id_list[0]); i++){
+		if(strstr(device_name, amd_gpu_id_list[i][0]) !=NULL){
+			puts(amd_gpu_id_list[i][1]);
+			snprintf(dst, dst_size, "%s", amd_gpu_id_list[i][1]);
+			return;
+		}
+	}
+	snprintf(dst, dst_size, "%s", device_name);
+}
+
+
 void show_device_info(){
 	cl_int ret;
 	cl_uint num_platforms;
@@ -42,17 +70,22 @@ void show_device_info(){
 			char vendor_name[1024] = { 0 };
 			char platform_name[1024] = { 0 };
 			char opencl_version[1024] = { 0 };
+			cl_uint vendor_id;
 			cl_device_type device_type;
 			ret = clGetDeviceInfo(device_id[j], CL_DEVICE_NAME, sizeof(device_name), device_name, NULL);
 			ret = clGetDeviceInfo(device_id[j], CL_DEVICE_VENDOR, sizeof(vendor_name), vendor_name, NULL);
 			ret = clGetDeviceInfo(device_id[j], CL_DEVICE_VERSION, sizeof(opencl_version), opencl_version, NULL);
 			ret = clGetPlatformInfo(platform_id[i], CL_PLATFORM_NAME, sizeof(platform_name), platform_name, NULL);
 			ret = clGetDeviceInfo(device_id[j], CL_DEVICE_TYPE, sizeof(cl_device_type), &device_type, NULL);
-
-			printf("Device ID:%d\n  Platform name\t\t%s\n  Device name\t\t%s\n  Device vendor\t\t%s\n  Device type\t\t%s\n  OpenCL version\t%s\n", (int)(offset + j), platform_name, device_name, vendor_name, device_type_str(device_type), opencl_version);
-
-			cl_uint vendor_id;
 			ret = clGetDeviceInfo(device_id[j], CL_DEVICE_VENDOR_ID, sizeof(cl_uint), &vendor_id, NULL);
+
+			//get AMD board name
+			if(vendor_id == AMD && device_type == CL_DEVICE_TYPE_GPU){
+				get_amd_device_name(device_id[j], sizeof(device_name), device_name);
+			}
+			
+			printf("Device ID:%d\n  Platform name\t\t%s\n  Device name\t\t%s\n  Device vendor\t\t%s\n  Device type\t\t%s\n  OpenCL version\t%s\n", (int)(offset + j), platform_name, device_name, vendor_name, device_type_str(device_type), opencl_version);
+			
 			if(vendor_id == NVIDIA){
 				cl_uint bus;
 				cl_uint slot;
@@ -124,11 +157,7 @@ int get_cl_device(struct cl_device *devices, size_t num_entries){
 
 			//get AMD board name
 			if(devices[offset + j].vendor_id == AMD && devices[offset + j].device_type == CL_DEVICE_TYPE_GPU){
-				ret = clGetDeviceInfo(devices[offset + j].device_id, 0x4038, sizeof(device_name), device_name, NULL); 
-				if(ret == CL_SUCCESS){
-					memset(devices[offset + j].device_name, 0, sizeof(devices[offset + j].device_name));
-					sprintf(devices[offset + j].device_name , "%s %s", vendor_name, device_name);
-				}
+				get_amd_device_name(devices[offset + j].device_id, sizeof(devices[offset + j].device_name), devices[offset + j].device_name);
 			}
 		}
 		offset += num_devices;
@@ -195,7 +224,7 @@ int cl_init(struct cl_ctx *c, struct cl_device* const device, bool debug) {
 	char option[256] = { 0 };
 
 	if(device->vendor_id == NVIDIA && device->device_type == CL_DEVICE_TYPE_GPU){
-		sprintf(option, /*-cl-nv-verbose*/"-cl-nv-maxrregcount=192 -D USE_UNROLL -D VECTOR_WIDTH_%d", device->vector_width);
+		sprintf(option, "-cl-nv-verbose -D USE_CL_NV_COMPILER_OPTIONS -cl-nv-maxrregcount=192 -D USE_UNROLL -D VECTOR_WIDTH_%d", device->vector_width);
 	} else if(device->vendor_id == INTEL && device->device_type == CL_DEVICE_TYPE_GPU){
 		sprintf(option, "-D USE_UNROLL -D VECTOR_WIDTH_%d", 1);
 	} else {

@@ -1,6 +1,10 @@
 #ifndef _VIPSTARCOIN_CL_H_
 #define _VIPSTARCOIN_CL_H_
 
+#ifdef __cplusplus
+extern "C"{
+#endif
+
 #include <stdbool.h>
 #include <stdint.h>
 #ifdef __APPLE__
@@ -65,4 +69,9 @@ int cl_release_buffer(struct cl_ctx *c);
 #define CL_MIDSTATE_SIZE 8
 #define CL_PREAHSH_SIZE 8
 #define CL_BUF_SIZE 64
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif /* _VIPSTARCOIN_CL_H_ */
