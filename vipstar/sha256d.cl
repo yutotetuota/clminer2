@@ -205,85 +205,6 @@ __kernel void sha256d_vips_ms_cl(__global uint *hash)\n
 		S[6] = midstate[6] + g;
 		S[7] = midstate[7] + h;
 		
-
-		W2S = WS + 64;
-
-
-		a = S[0];
-		b = S[1];
-		c = S[2];
-		d = S[3];
-		e = S[4];
-		f = S[5];
-		g = S[6];
-		h = S[7];
-
-		RND(a, b, c, d, e, f, g, h, W2S[ 0]/* + 0x428a2f98u*/);
-		RND(h, a, b, c, d, e, f, g, W2S[ 1]/* + 0x71374491u*/);
-		RND(g, h, a, b, c, d, e, f, W2S[ 2]/* + 0xb5c0fbcfu*/);
-		RND(f, g, h, a, b, c, d, e, W2S[ 3]/* + 0xe9b5dba5u*/);
-		RND(e, f, g, h, a, b, c, d, W2S[ 4]/* + 0x3956c25bu*/);
-		RND(d, e, f, g, h, a, b, c, W2S[ 5]/* + 0x59f111f1u*/);
-		RND(c, d, e, f, g, h, a, b, W2S[ 6]/* + 0x923f82a4u*/);
-		RND(b, c, d, e, f, g, h, a, W2S[ 7]/* + 0xab1c5ed5u*/);
-		RND(a, b, c, d, e, f, g, h, W2S[ 8]/* + 0xd807aa98u*/);
-		RND(h, a, b, c, d, e, f, g, W2S[ 9]/* + 0x12835b01u*/);
-		RND(g, h, a, b, c, d, e, f, W2S[10]/* + 0x243185beu*/);
-		RND(f, g, h, a,	b, c, d, e, W2S[11]/* + 0x550c7dc3u*/);
-		RND(e, f, g, h, a, b, c, d, W2S[12]/* + 0x72be5d74u*/);
-		RND(d, e, f, g, h, a, b, c, W2S[13]/* + 0x80deb1feu*/);
-		RND(c, d, e, f, g, h, a, b, W2S[14]/* + 0x9bdc06a7u*/);
-		RND(b, c, d, e, f, g, h, a, W2S[15]/* + 0xc19bf174u*/);
-		RND(a, b, c, d, e, f, g, h, W2S[16]/* + 0xe49b69c1u*/);
-		RND(h, a, b, c, d, e, f, g, W2S[17]/* + 0xefbe4786u*/);
-		RND(g, h, a, b, c, d, e, f, W2S[18]/* + 0x0fc19dc6u*/);
-		RND(f, g, h, a,	b, c, d, e, W2S[19]/* + 0x240ca1ccu*/);
-		RND(e, f, g, h, a, b, c, d, W2S[20]/* + 0x2de92c6fu*/);
-		RND(d, e, f, g, h, a, b, c, W2S[21]/* + 0x4a7484aau*/);
-		RND(c, d, e, f, g, h, a, b, W2S[22]/* + 0x5cb0a9dcu*/);
-		RND(b, c, d, e, f, g, h, a, W2S[23]/* + 0x76f988dau*/);
-		RND(a, b, c, d, e, f, g, h, W2S[24]/* + 0x983e5152u*/);
-		RND(h, a, b, c, d, e, f, g, W2S[25]/* + 0xa831c66du*/);
-		RND(g, h, a, b, c, d, e, f, W2S[26]/* + 0xb00327c8u*/);
-		RND(f, g, h, a,	b, c, d, e, W2S[27]/* + 0xbf597fc7u*/);
-		RND(e, f, g, h, a, b, c, d, W2S[28]/* + 0xc6e00bf3u*/);
-		RND(d, e, f, g, h, a, b, c, W2S[29]/* + 0xd5a79147u*/);
-		RND(c, d, e, f, g, h, a, b, W2S[30]/* + 0x06ca6351u*/);
-		RND(b, c, d, e, f, g, h, a, W2S[31]/* + 0x14292967u*/);
-		RND(a, b, c, d, e, f, g, h, W2S[32]/* + 0x27b70a85u*/);
-		RND(h, a, b, c, d, e, f, g, W2S[33]/* + 0x2e1b2138u*/);
-		RND(g, h, a, b, c, d, e, f, W2S[34]/* + 0x4d2c6dfcu*/);
-		RND(f, g, h, a,	b, c, d, e, W2S[35]/* + 0x53380d13u*/);
-		RND(e, f, g, h, a, b, c, d, W2S[36]/* + 0x650a7354u*/);
-		RND(d, e, f, g, h, a, b, c, W2S[37]/* + 0x766a0abbu*/);
-		RND(c, d, e, f, g, h, a, b, W2S[38]/* + 0x81c2c92eu*/);
-		RND(b, c, d, e, f, g, h, a, W2S[39]/* + 0x92722c85u*/);
-		RND(a, b, c, d, e, f, g, h, W2S[40]/* + 0xa2bfe8a1u*/);
-		RND(h, a, b, c, d, e, f, g, W2S[41]/* + 0xa81a664bu*/);
-		RND(g, h, a, b, c, d, e, f, W2S[42]/* + 0xc24b8b70u*/);
-		RND(f, g, h, a,	b, c, d, e, W2S[43]/* + 0xc76c51a3u*/);
-		RND(e, f, g, h, a, b, c, d, W2S[44]/* + 0xd192e819u*/);
-		RND(d, e, f, g, h, a, b, c, W2S[45]/* + 0xd6990624u*/);
-		RND(c, d, e, f, g, h, a, b, W2S[46]/* + 0xf40e3585u*/);
-		RND(b, c, d, e, f, g, h, a, W2S[47]/* + 0x106aa070u*/);
-		RND(a, b, c, d, e, f, g, h, W2S[48]/* + 0x19a4c116u*/);
-		RND(h, a, b, c, d, e, f, g, W2S[49]/* + 0x1e376c08u*/);
-		RND(g, h, a, b, c, d, e, f, W2S[50]/* + 0x2748774cu*/);
-		RND(f, g, h, a,	b, c, d, e, W2S[51]/* + 0x34b0bcb5u*/);
-		RND(e, f, g, h, a, b, c, d, W2S[52]/* + 0x391c0cb3u*/);
-		RND(d, e, f, g, h, a, b, c, W2S[53]/* + 0x4ed8aa4au*/);
-		RND(c, d, e, f, g, h, a, b, W2S[54]/* + 0x5b9cca4fu*/);
-		RND(b, c, d, e, f, g, h, a, W2S[55]/* + 0x682e6ff3u*/);
-		RND(a, b, c, d, e, f, g, h, W2S[56]/* + 0x748f82eeu*/);
-		RND(h, a, b, c, d, e, f, g, W2S[57]/* + 0x78a5636fu*/);
-		RND(g, h, a, b, c, d, e, f, W2S[58]/* + 0x84c87814u*/);
-		RND(f, g, h, a,	b, c, d, e, W2S[59]/* + 0x8cc70208u*/);
-		RND(e, f, g, h, a, b, c, d, W2S[60]/* + 0x90befffau*/);
-		RND(d, e, f, g, h, a, b, c, W2S[61]/* + 0xa4506cebu*/);
-		RND(c, d, e, f, g, h, a, b, W2S[62]/* + 0xbef9a3f7u*/);
-		RND(b, c, d, e, f, g, h, a, W2S[63]/* + 0xc67178f2u*/);
-
-
 		W[0] = S[0] + a;
 		W[1] = S[1] + b;
 		W[2] = S[2] + c;
@@ -293,24 +214,6 @@ __kernel void sha256d_vips_ms_cl(__global uint *hash)\n
 		W[6] = S[6] + g;
 		W[7] = S[7] + h;
 
-
-		//second
-		W[16] =                     s0(W[ 1]) + W[ 0];
-		W[17] = s1(0x00000100u)   + s0(W[ 2]) + W[ 1];
-		W[18] = s1(W[16])         + s0(W[ 3]) + W[ 2];
-		W[19] = s1(W[17])         + s0(W[ 4]) + W[ 3];
-		W[20] = s1(W[18])         + s0(W[ 5]) + W[ 4];
-		W[21] = s1(W[19])         + s0(W[ 6]) + W[ 5];
-		W[22] = s1(W[20]) + 0x00000100u + s0(W[ 7]) + W[ 6];
-		W[23] = s1(W[21]) + W[16] + s0(0x80000000u) + W[ 7];
-		W[24] = s1(W[22]) + W[17]             + 0x80000000u;
-		W[25] = s1(W[23]) + W[18];
-		W[26] = s1(W[24]) + W[19];
-		W[27] = s1(W[25]) + W[20];
-		W[28] = s1(W[26]) + W[21];
-		W[29] = s1(W[27]) + W[22];
-		W[30] = s1(W[28]) + W[23] + s0(0x00000100u);
-		W[31] = s1(W[29]) + W[24] + s0(W[16]) + 0x00000100u;
 		
 		#ifdef USE_UNROLL
 		#pragma unroll
