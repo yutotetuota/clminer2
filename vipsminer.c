@@ -125,9 +125,9 @@ enum algos {
 	ALGO_TRIBUS,      /* Denarius jh/keccak/echo */
 	ALGO_VANILLA,     /* Vanilla (Blake256 8-rounds - double sha256) */
 	ALGO_VELTOR,      /* Skein Shavite Shabal Streebog */
-	ALGO_VIPSTAR      /* bitcoin */
+	ALGO_VIPSTAR,     /* bitcoin */
 #ifdef USE_OPENCL
-	ALGO_SHA256D_CL  /* bitcoin with opencl */
+	ALGO_SHA256D_CL,  /* bitcoin with opencl */
 #endif
 	ALGO_X11EVO,      /* Permuted X11 */
 	ALGO_X11,         /* X11 */
