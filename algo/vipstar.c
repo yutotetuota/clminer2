@@ -623,9 +623,9 @@ static inline void sha256d_vips_ms_4way(__m128i *hash, __m128i *W,
 	RNDr_128(hash, S, 55);
 	RNDr_128(hash, S, 56);
 
-	hash[2] = _mm_add_epi32(_mm_add_epi32(_mm_add_epi32(_mm_add_epi32(_mm_add_epi32(hash[2], hash[6])), Ch_128(hash[3], hash[4], hash[5])), S[57]), sha256_k_128[57]);
-	hash[1] = _mm_add_epi32(_mm_add_epi32(_mm_add_epi32(_mm_add_epi32(_mm_add_epi32(hash[1], hash[5])), Ch_128(hash[2], hash[3], hash[4])), S[58]), sha256_k_128[58]);
-	hash[0] = _mm_add_epi32(_mm_add_epi32(_mm_add_epi32(_mm_add_epi32(_mm_add_epi32(hash[0], hash[4])), Ch_128(hash[1], hash[2], hash[3])), S[59]), sha256_k_128[59]);
+	hash[2] = _mm_add_epi32(_mm_add_epi32(_mm_add_epi32(_mm_add_epi32(hash[2], hash[6]), Ch_128(hash[3], hash[4], hash[5])), S[57]), sha256_k_128[57]);
+	hash[1] = _mm_add_epi32(_mm_add_epi32(_mm_add_epi32(_mm_add_epi32(hash[1], hash[5]), Ch_128(hash[2], hash[3], hash[4])), S[58]), sha256_k_128[58]);
+	hash[0] = _mm_add_epi32(_mm_add_epi32(_mm_add_epi32(_mm_add_epi32(hash[0], hash[4]), Ch_128(hash[1], hash[2], hash[3])), S[59]), sha256_k_128[59]);
 	hash[7] = _mm_add_epi32(_mm_add_epi32(_mm_add_epi32(_mm_add_epi32(_mm_add_epi32(_mm_add_epi32(hash[7], hash[3]), Ch_128(hash[0], hash[1], hash[2])), S[60]), sha256_k_128[60]), sha256_h_128[7]);
 }
 #endif /* __SSE2__ */
