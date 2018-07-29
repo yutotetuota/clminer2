@@ -205,72 +205,6 @@ __kernel void sha256d_vips_ms_cl(__global uint *hash)\n
 		g = S[6];
 		h = S[7];
 
-		RND(a, b, c, d, e, f, g, h, W2[ 0] + 0x428a2f98u);
-		RND(h, a, b, c, d, e, f, g, W2[ 1] + 0x71374491u);
-		RND(g, h, a, b, c, d, e, f, W2[ 2] + 0xb5c0fbcfu);
-		RND(f, g, h, a, b, c, d, e, W2[ 3] + 0xe9b5dba5u);
-		RND(e, f, g, h, a, b, c, d, W2[ 4] + 0x3956c25bu);
-		RND(d, e, f, g, h, a, b, c, W2[ 5] + 0x59f111f1u);
-		RND(c, d, e, f, g, h, a, b, W2[ 6] + 0x923f82a4u);
-		RND(b, c, d, e, f, g, h, a, W2[ 7] + 0xab1c5ed5u);
-		RND(a, b, c, d, e, f, g, h, W2[ 8] + 0xd807aa98u);
-		RND(h, a, b, c, d, e, f, g, W2[ 9] + 0x12835b01u);
-		RND(g, h, a, b, c, d, e, f, W2[10] + 0x243185beu);
-		RND(f, g, h, a,	b, c, d, e, W2[11] + 0x550c7dc3u);
-		RND(e, f, g, h, a, b, c, d, W2[12] + 0x72be5d74u);
-		RND(d, e, f, g, h, a, b, c, W2[13] + 0x80deb1feu);
-		RND(c, d, e, f, g, h, a, b, W2[14] + 0x9bdc06a7u);
-		RND(b, c, d, e, f, g, h, a, W2[15] + 0xc19bf174u);
-		RND(a, b, c, d, e, f, g, h, W2[16] + 0xe49b69c1u);
-		RND(h, a, b, c, d, e, f, g, W2[17] + 0xefbe4786u);
-		RND(g, h, a, b, c, d, e, f, W2[18] + 0x0fc19dc6u);
-		RND(f, g, h, a,	b, c, d, e, W2[19] + 0x240ca1ccu);
-		RND(e, f, g, h, a, b, c, d, W2[20] + 0x2de92c6fu);
-		RND(d, e, f, g, h, a, b, c, W2[21] + 0x4a7484aau);
-		RND(c, d, e, f, g, h, a, b, W2[22] + 0x5cb0a9dcu);
-		RND(b, c, d, e, f, g, h, a, W2[23] + 0x76f988dau);
-		RND(a, b, c, d, e, f, g, h, W2[24] + 0x983e5152u);
-		RND(h, a, b, c, d, e, f, g, W2[25] + 0xa831c66du);
-		RND(g, h, a, b, c, d, e, f, W2[26] + 0xb00327c8u);
-		RND(f, g, h, a,	b, c, d, e, W2[27] + 0xbf597fc7u);
-		RND(e, f, g, h, a, b, c, d, W2[28] + 0xc6e00bf3u);
-		RND(d, e, f, g, h, a, b, c, W2[29] + 0xd5a79147u);
-		RND(c, d, e, f, g, h, a, b, W2[30] + 0x06ca6351u);
-		RND(b, c, d, e, f, g, h, a, W2[31] + 0x14292967u);
-		RND(a, b, c, d, e, f, g, h, W2[32] + 0x27b70a85u);
-		RND(h, a, b, c, d, e, f, g, W2[33] + 0x2e1b2138u);
-		RND(g, h, a, b, c, d, e, f, W2[34] + 0x4d2c6dfcu);
-		RND(f, g, h, a,	b, c, d, e, W2[35] + 0x53380d13u);
-		RND(e, f, g, h, a, b, c, d, W2[36] + 0x650a7354u);
-		RND(d, e, f, g, h, a, b, c, W2[37] + 0x766a0abbu);
-		RND(c, d, e, f, g, h, a, b, W2[38] + 0x81c2c92eu);
-		RND(b, c, d, e, f, g, h, a, W2[39] + 0x92722c85u);
-		RND(a, b, c, d, e, f, g, h, W2[40] + 0xa2bfe8a1u);
-		RND(h, a, b, c, d, e, f, g, W2[41] + 0xa81a664bu);
-		RND(g, h, a, b, c, d, e, f, W2[42] + 0xc24b8b70u);
-		RND(f, g, h, a,	b, c, d, e, W2[43] + 0xc76c51a3u);
-		RND(e, f, g, h, a, b, c, d, W2[44] + 0xd192e819u);
-		RND(d, e, f, g, h, a, b, c, W2[45] + 0xd6990624u);
-		RND(c, d, e, f, g, h, a, b, W2[46] + 0xf40e3585u);
-		RND(b, c, d, e, f, g, h, a, W2[47] + 0x106aa070u);
-		RND(a, b, c, d, e, f, g, h, W2[48] + 0x19a4c116u);
-		RND(h, a, b, c, d, e, f, g, W2[49] + 0x1e376c08u);
-		RND(g, h, a, b, c, d, e, f, W2[50] + 0x2748774cu);
-		RND(f, g, h, a,	b, c, d, e, W2[51] + 0x34b0bcb5u);
-		RND(e, f, g, h, a, b, c, d, W2[52] + 0x391c0cb3u);
-		RND(d, e, f, g, h, a, b, c, W2[53] + 0x4ed8aa4au);
-		RND(c, d, e, f, g, h, a, b, W2[54] + 0x5b9cca4fu);
-		RND(b, c, d, e, f, g, h, a, W2[55] + 0x682e6ff3u);
-		RND(a, b, c, d, e, f, g, h, W2[56] + 0x748f82eeu);
-		RND(h, a, b, c, d, e, f, g, W2[57] + 0x78a5636fu);
-		RND(g, h, a, b, c, d, e, f, W2[58] + 0x84c87814u);
-		RND(f, g, h, a,	b, c, d, e, W2[59] + 0x8cc70208u);
-		RND(e, f, g, h, a, b, c, d, W2[60] + 0x90befffau);
-		RND(d, e, f, g, h, a, b, c, W2[61] + 0xa4506cebu);
-		RND(c, d, e, f, g, h, a, b, W2[62] + 0xbef9a3f7u);
-		RND(b, c, d, e, f, g, h, a, W2[63] + 0xc67178f2u);
-
-
 		S[0] += a;
 		S[1] += b;
 		S[2] += c;
@@ -285,38 +219,6 @@ __kernel void sha256d_vips_ms_cl(__global uint *hash)\n
 		#pragma unroll
 		for(int i = 0; i < 14; i++)
 			W[18 + i] = S[18 + i];
-
-
-
-
-		//second
-		S[ 8] = 0x80000000u;
-		S[ 9] = 0x00000000u;
-		S[10] = 0x00000000u;
-		S[11] = 0x00000000u;
-		S[12] = 0x00000000u;
-		S[13] = 0x00000000u;
-		S[14] = 0x00000000u;
-		S[15] = 0x00000100u;
-
-
-
-		S[16] =                     s0(S[ 1]) + S[ 0];
-		S[17] = s1(0x00000100u)   + s0(S[ 2]) + S[ 1];
-		S[18] = s1(S[16])         + s0(S[ 3]) + S[ 2];
-		S[19] = s1(S[17])         + s0(S[ 4]) + S[ 3];
-		S[20] = s1(S[18])         + s0(S[ 5]) + S[ 4];
-		S[21] = s1(S[19])         + s0(S[ 6]) + S[ 5];
-		S[22] = s1(S[20]) + 0x00000100u + s0(S[ 7]) + S[ 6];
-		S[23] = s1(S[21]) + S[16] + s0(0x80000000u) + S[ 7];
-		S[24] = s1(S[22]) + S[17]             + 0x80000000u;
-		S[25] = s1(S[23]) + S[18];
-		S[26] = s1(S[24]) + S[19];
-		S[27] = s1(S[25]) + S[20];
-		S[28] = s1(S[26]) + S[21];
-		S[29] = s1(S[27]) + S[22];
-		S[30] = s1(S[28]) + S[23] + s0(0x00000100u);
-		S[31] = s1(S[29]) + S[24] + s0(S[16]) + 0x00000100u;
 		
 		#pragma unroll
 		for (int i = 32; i < 60; i += 2) {
