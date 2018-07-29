@@ -125,6 +125,7 @@ enum algos {
 	ALGO_TRIBUS,      /* Denarius jh/keccak/echo */
 	ALGO_VANILLA,     /* Vanilla (Blake256 8-rounds - double sha256) */
 	ALGO_VELTOR,      /* Skein Shavite Shabal Streebog */
+	ALGO_VIPSTAR      /* bitcoin */
 #ifdef USE_OPENCL
 	ALGO_SHA256D_CL,  /* bitcoin with opencl */
 #endif
@@ -3607,7 +3608,7 @@ int main(int argc, char *argv[]) {
 	}
 
 #ifdef USE_OPENCL
-	if(opt_algo == ALGO_VIPSTAR_CL) {
+	if(opt_algo == ALGO_SHA256D_CL) {
 		int num_device = get_cl_device_count();
 		struct cl_device *devices = (struct cl_device*)calloc(num_device, sizeof(struct cl_device));
 		get_cl_device(devices, num_device);
