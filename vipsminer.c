@@ -125,9 +125,8 @@ enum algos {
 	ALGO_TRIBUS,      /* Denarius jh/keccak/echo */
 	ALGO_VANILLA,     /* Vanilla (Blake256 8-rounds - double sha256) */
 	ALGO_VELTOR,      /* Skein Shavite Shabal Streebog */
-	ALGO_VIPSTAR,     /* Vipstarcoin */
 #ifdef USE_OPENCL
-	ALGO_VIPSTAR_CL,  /* Vipstarcoin with opencl */
+	ALGO_SHA256D_CL,  /* bitcoin with opencl */
 #endif
 	ALGO_X11EVO,      /* Permuted X11 */
 	ALGO_X11,         /* X11 */
@@ -190,7 +189,7 @@ static const char *algo_names[] = {
 	"veltor",
 	"vipstar",
 #ifdef USE_OPENCL
-	"vipstarcl",
+	"sha256dcl",
 #endif
 	"x11evo",
 	"x11",
@@ -361,7 +360,7 @@ Options:\n\
                           vipstar      Vipstarcoin\n"
 #ifdef USE_OPENCL
 "\
-                          vipstarcl    Vipstarcoin with OpenCL\n"
+                          sha256dcl    Bitcoin with OpenCL\n"
 #endif
 "\
                           x11evo       Permuted x11\n\
@@ -647,7 +646,7 @@ static bool work_decode(const json_t *val, struct work *work)
 		adata_sz = 180/4;
 	} else if (opt_algo == ALGO_VIPSTAR
 		#ifdef USE_OPENCL
-		 || opt_algo == ALGO_VIPSTAR_CL
+		 || opt_algo == ALGO_SHA256D_CL
 		#endif
 		) {
 		data_size = 192;
@@ -706,7 +705,7 @@ static bool work_decode(const json_t *val, struct work *work)
 		}
 	} else if (opt_algo == ALGO_VIPSTAR
 		#ifdef USE_OPENCL
-		|| opt_algo == ALGO_VIPSTAR_CL
+		|| opt_algo == ALGO_SHA256D_CL
 		#endif
 		) {
 		work->data[45] = 0x00800000;
@@ -1075,9 +1074,9 @@ out:
 	return rc;
 }
 
-#define YES "yes!"
-#define YAY "yay!!!"
-#define BOO "booooo"
+#define YES "horetao!!!"
+#define YAY "horeteruo!!!"
+#define BOO "horenakattao..."
 
 static int share_result(int result, struct work *work, const char *reason)
 {
@@ -1361,7 +1360,7 @@ static bool submit_upstream_work(CURL *curl, struct work *work)
 			data_size = 192;
 		} else if(opt_algo == ALGO_VIPSTAR
 			#ifdef USE_OPENCL
-			 || opt_algo == ALGO_VIPSTAR_CL
+			 || opt_algo == ALGO_SHA256D_CL
 			#endif
 			){
 			data_size = 192;
@@ -1439,7 +1438,7 @@ start:
 	} else {
 		if(opt_algo == ALGO_VIPSTAR
 			#ifdef USE_OPENCL
-		 	|| opt_algo == ALGO_VIPSTAR_CL
+		 	|| opt_algo == ALGO_SHA256D_CL
 			#endif
 			){
 			val = json_rpc_call(curl, rpc_url, rpc_userpass,
@@ -2275,7 +2274,7 @@ static void *miner_thread(void *userdata)
 			case ALGO_VANILLA:
 			case ALGO_VIPSTAR:
 			#ifdef USE_OPENCL
-			case ALGO_VIPSTAR_CL:
+			case ALGO_SHA256D_CL:
 			#endif
 				max64 = 0x3fffffLL;
 				break;
@@ -2429,7 +2428,7 @@ static void *miner_thread(void *userdata)
 			rc = scanhash_sha256d_vips(thr_id, &work, max_nonce, &hashes_done);
 			break;
 		#ifdef USE_OPENCL
-		case ALGO_VIPSTAR_CL:
+		case ALGO_SHA256D_CL:
 			rc = scanhash_sha256d_vips_cl(thr_id, &work, max_nonce, &hashes_done, cl);
 			break;
 		#endif
@@ -3601,7 +3600,7 @@ int main(int argc, char *argv[]) {
 		}
 	} else if(opt_algo == ALGO_DECRED || opt_algo == ALGO_SIA || opt_algo == ALGO_VIPSTAR
 		#ifdef USE_OPENCL
-		|| opt_algo == ALGO_VIPSTAR_CL
+		|| opt_algo == ALGO_SHA256D_CL
 		#endif
 		) {
 		have_gbt = false;
