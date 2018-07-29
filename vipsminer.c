@@ -127,7 +127,7 @@ enum algos {
 	ALGO_VELTOR,      /* Skein Shavite Shabal Streebog */
 	ALGO_VIPSTAR      /* bitcoin */
 #ifdef USE_OPENCL
-	ALGO_SHA256D_CL,  /* bitcoin with opencl */
+	ALGO_SHA256D_CL  /* bitcoin with opencl */
 #endif
 	ALGO_X11EVO,      /* Permuted X11 */
 	ALGO_X11,         /* X11 */
