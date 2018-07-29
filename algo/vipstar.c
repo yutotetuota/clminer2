@@ -303,105 +303,7 @@ static inline void sha256d_ms_vips(uint32_t *hash, uint32_t *W,
 	for (i = 0; i < 8; i++)
 		S[i] += midstate[i];
 
-	W2 = W + 64;
-	S2 = S + 8;
-	memcpy(S2, S, 32);
-
-	RNDr(S2, W2,  0);
-	RNDr(S2, W2,  1);
-	RNDr(S2, W2,  2);
-	RNDr(S2, W2,  3);
-	RNDr(S2, W2,  4);
-	RNDr(S2, W2,  5);
-	RNDr(S2, W2,  6);
-	RNDr(S2, W2,  7);
-	RNDr(S2, W2,  8);
-	RNDr(S2, W2,  9);
-	RNDr(S2, W2, 10);
-	RNDr(S2, W2, 11);
-	RNDr(S2, W2, 12);
-	RNDr(S2, W2, 13);
-	RNDr(S2, W2, 14);
-	RNDr(S2, W2, 15);
-	RNDr(S2, W2, 16);
-	RNDr(S2, W2, 17);
-	RNDr(S2, W2, 18);
-	RNDr(S2, W2, 19);
-	RNDr(S2, W2, 20);
-	RNDr(S2, W2, 21);
-	RNDr(S2, W2, 22);
-	RNDr(S2, W2, 23);
-	RNDr(S2, W2, 24);
-	RNDr(S2, W2, 25);
-	RNDr(S2, W2, 26);
-	RNDr(S2, W2, 27);
-	RNDr(S2, W2, 28);
-	RNDr(S2, W2, 29);
-	RNDr(S2, W2, 30);
-	RNDr(S2, W2, 31);
-	RNDr(S2, W2, 32);
-	RNDr(S2, W2, 33);
-	RNDr(S2, W2, 34);
-	RNDr(S2, W2, 35);
-	RNDr(S2, W2, 36);
-	RNDr(S2, W2, 37);
-	RNDr(S2, W2, 38);
-	RNDr(S2, W2, 39);
-	RNDr(S2, W2, 40);
-	RNDr(S2, W2, 41);
-	RNDr(S2, W2, 42);
-	RNDr(S2, W2, 43);
-	RNDr(S2, W2, 44);
-	RNDr(S2, W2, 45);
-	RNDr(S2, W2, 46);
-	RNDr(S2, W2, 47);
-	RNDr(S2, W2, 48);
-	RNDr(S2, W2, 49);
-	RNDr(S2, W2, 50);
-	RNDr(S2, W2, 51);
-	RNDr(S2, W2, 52);
-	RNDr(S2, W2, 53);
-	RNDr(S2, W2, 54);
-	RNDr(S2, W2, 55);
-	RNDr(S2, W2, 56);
-	RNDr(S2, W2, 57);
-	RNDr(S2, W2, 58);
-	RNDr(S2, W2, 59);
-	RNDr(S2, W2, 60);
-	RNDr(S2, W2, 61);
-	RNDr(S2, W2, 62);
-	RNDr(S2, W2, 63);
-
-	for (i = 0; i < 8; i++)
-		S[i] += S2[i];
-
-
 	memcpy(W + 18, S + 18, sizeof(uint32_t) * 14);
-
-
-	//second
-	memcpy(S + 8, sha256d_hash1 + 8, 32);
-	S[16] =                     s0(S[ 1]) + S[ 0];
-	S[17] = s1(0x00000100u)   + s0(S[ 2]) + S[ 1];
-	S[18] = s1(S[16])         + s0(S[ 3]) + S[ 2];
-	S[19] = s1(S[17])         + s0(S[ 4]) + S[ 3];
-	S[20] = s1(S[18])         + s0(S[ 5]) + S[ 4];
-	S[21] = s1(S[19])         + s0(S[ 6]) + S[ 5];
-	S[22] = s1(S[20]) + 0x00000100u + s0(S[ 7]) + S[ 6];
-	S[23] = s1(S[21]) + S[16] + s0(0x80000000u) + S[ 7];
-	S[24] = s1(S[22]) + S[17]             + 0x80000000u;
-	S[25] = s1(S[23]) + S[18];
-	S[26] = s1(S[24]) + S[19];
-	S[27] = s1(S[25]) + S[20];
-	S[28] = s1(S[26]) + S[21];
-	S[29] = s1(S[27]) + S[22];
-	S[30] = s1(S[28]) + S[23] + s0(0x00000100u);
-	S[31] = s1(S[29]) + S[24] + s0(S[16]) + 0x00000100u;
-	for (i = 32; i < 60; i += 2) {
-		S[i]   = s1(S[i - 2]) + S[i - 7] + s0(S[i - 15]) + S[i - 16];
-		S[i+1] = s1(S[i - 1]) + S[i - 6] + s0(S[i - 14]) + S[i - 15];
-	}
-	S[60] = s1(S[58]) + S[53] + s0(S[45]) + S[44];
 
 	sha256_init(hash);
 
@@ -463,10 +365,10 @@ static inline void sha256d_ms_vips(uint32_t *hash, uint32_t *W,
 	RNDr(hash, S, 55);
 	RNDr(hash, S, 56);
 
-	hash[2] += hash[6] + S1(hash[3]) + Ch(hash[3], hash[4], hash[5]) + S[57] + sha256_k[57];
-	hash[1] += hash[5] + S1(hash[2]) + Ch(hash[2], hash[3], hash[4]) + S[58] + sha256_k[58];
-	hash[0] += hash[4] + S1(hash[1]) + Ch(hash[1], hash[2], hash[3]) + S[59] + sha256_k[59];
-	hash[7] += hash[3] + S1(hash[0]) + Ch(hash[0], hash[1], hash[2]) + S[60] + sha256_k[60] + sha256_h[7];
+	hash[2] += hash[6] + Ch(hash[3], hash[4], hash[5]) + S[57] + sha256_k[57];
+	hash[1] += hash[5] + Ch(hash[2], hash[3], hash[4]) + S[58] + sha256_k[58];
+	hash[0] += hash[4] + Ch(hash[1], hash[2], hash[3]) + S[59] + sha256_k[59];
+	hash[7] += hash[3] + Ch(hash[0], hash[1], hash[2]) + S[60] + sha256_k[60] + sha256_h[7];
 }
 
 #if defined(__SSE2__) && defined(USE_ASM)
@@ -631,82 +533,6 @@ static inline void sha256d_vips_ms_4way(__m128i *hash, __m128i *W,
 	for (i = 0; i < 8; i++)
 		S[i] = _mm_add_epi32(S[i], midstate[i]);
 
-	W2 = W + 64;
-	S2 = S + 8;
-
-
-	memcpy(S2, S, sizeof(uint32_t) * 4 * 8);
-
-
-	RNDr_128(S2, W2,  0);
-	RNDr_128(S2, W2,  1);
-	RNDr_128(S2, W2,  2);
-	RNDr_128(S2, W2,  3);
-	RNDr_128(S2, W2,  4);
-	RNDr_128(S2, W2,  5);
-	RNDr_128(S2, W2,  6);
-	RNDr_128(S2, W2,  7);
-	RNDr_128(S2, W2,  8);
-	RNDr_128(S2, W2,  9);
-	RNDr_128(S2, W2, 10);
-	RNDr_128(S2, W2, 11);
-	RNDr_128(S2, W2, 12);
-	RNDr_128(S2, W2, 13);
-	RNDr_128(S2, W2, 14);
-	RNDr_128(S2, W2, 15);
-	RNDr_128(S2, W2, 16);
-	RNDr_128(S2, W2, 17);
-	RNDr_128(S2, W2, 18);
-	RNDr_128(S2, W2, 19);
-	RNDr_128(S2, W2, 20);
-	RNDr_128(S2, W2, 21);
-	RNDr_128(S2, W2, 22);
-	RNDr_128(S2, W2, 23);
-	RNDr_128(S2, W2, 24);
-	RNDr_128(S2, W2, 25);
-	RNDr_128(S2, W2, 26);
-	RNDr_128(S2, W2, 27);
-	RNDr_128(S2, W2, 28);
-	RNDr_128(S2, W2, 29);
-	RNDr_128(S2, W2, 30);
-	RNDr_128(S2, W2, 31);
-	RNDr_128(S2, W2, 32);
-	RNDr_128(S2, W2, 33);
-	RNDr_128(S2, W2, 34);
-	RNDr_128(S2, W2, 35);
-	RNDr_128(S2, W2, 36);
-	RNDr_128(S2, W2, 37);
-	RNDr_128(S2, W2, 38);
-	RNDr_128(S2, W2, 39);
-	RNDr_128(S2, W2, 40);
-	RNDr_128(S2, W2, 41);
-	RNDr_128(S2, W2, 42);
-	RNDr_128(S2, W2, 43);
-	RNDr_128(S2, W2, 44);
-	RNDr_128(S2, W2, 45);
-	RNDr_128(S2, W2, 46);
-	RNDr_128(S2, W2, 47);
-	RNDr_128(S2, W2, 48);
-	RNDr_128(S2, W2, 49);
-	RNDr_128(S2, W2, 50);
-	RNDr_128(S2, W2, 51);
-	RNDr_128(S2, W2, 52);
-	RNDr_128(S2, W2, 53);
-	RNDr_128(S2, W2, 54);
-	RNDr_128(S2, W2, 55);
-	RNDr_128(S2, W2, 56);
-	RNDr_128(S2, W2, 57);
-	RNDr_128(S2, W2, 58);
-	RNDr_128(S2, W2, 59);
-	RNDr_128(S2, W2, 60);
-	RNDr_128(S2, W2, 61);
-	RNDr_128(S2, W2, 62);
-	RNDr_128(S2, W2, 63);
-
-
-	for (i = 0; i < 8; i++)
-		S[i] = _mm_add_epi32(S[i], S2[i]);
-
 
 	memcpy(W + 18, S + 18, sizeof(uint32_t) * 4 * 14);
 
@@ -797,10 +623,10 @@ static inline void sha256d_vips_ms_4way(__m128i *hash, __m128i *W,
 	RNDr_128(hash, S, 55);
 	RNDr_128(hash, S, 56);
 
-	hash[2] = _mm_add_epi32(_mm_add_epi32(_mm_add_epi32(_mm_add_epi32(_mm_add_epi32(hash[2], hash[6]), S1_128(hash[3])), Ch_128(hash[3], hash[4], hash[5])), S[57]), sha256_k_128[57]);
-	hash[1] = _mm_add_epi32(_mm_add_epi32(_mm_add_epi32(_mm_add_epi32(_mm_add_epi32(hash[1], hash[5]), S1_128(hash[2])), Ch_128(hash[2], hash[3], hash[4])), S[58]), sha256_k_128[58]);
-	hash[0] = _mm_add_epi32(_mm_add_epi32(_mm_add_epi32(_mm_add_epi32(_mm_add_epi32(hash[0], hash[4]), S1_128(hash[1])), Ch_128(hash[1], hash[2], hash[3])), S[59]), sha256_k_128[59]);
-	hash[7] = _mm_add_epi32(_mm_add_epi32(_mm_add_epi32(_mm_add_epi32(_mm_add_epi32(_mm_add_epi32(hash[7], hash[3]), S1_128(hash[0])), Ch_128(hash[0], hash[1], hash[2])), S[60]), sha256_k_128[60]), sha256_h_128[7]);
+	hash[2] = _mm_add_epi32(_mm_add_epi32(_mm_add_epi32(_mm_add_epi32(_mm_add_epi32(hash[2], hash[6])), Ch_128(hash[3], hash[4], hash[5])), S[57]), sha256_k_128[57]);
+	hash[1] = _mm_add_epi32(_mm_add_epi32(_mm_add_epi32(_mm_add_epi32(_mm_add_epi32(hash[1], hash[5])), Ch_128(hash[2], hash[3], hash[4])), S[58]), sha256_k_128[58]);
+	hash[0] = _mm_add_epi32(_mm_add_epi32(_mm_add_epi32(_mm_add_epi32(_mm_add_epi32(hash[0], hash[4])), Ch_128(hash[1], hash[2], hash[3])), S[59]), sha256_k_128[59]);
+	hash[7] = _mm_add_epi32(_mm_add_epi32(_mm_add_epi32(_mm_add_epi32(_mm_add_epi32(_mm_add_epi32(hash[7], hash[3]), Ch_128(hash[0], hash[1], hash[2])), S[60]), sha256_k_128[60]), sha256_h_128[7]);
 }
 #endif /* __SSE2__ */
 
@@ -968,83 +794,6 @@ static inline void sha256d_vips_ms_8way(__m256i *hash, __m256i *W,
 		S[i] = _mm256_add_epi32(S[i], midstate[i]);
 
 
-	W2 = W + 64;
-	S2 = S + 8;
-
-
-	memcpy(S2, S, sizeof(uint32_t) * 8 * 8);
-
-
-	RNDr_256(S2, W2,  0);
-	RNDr_256(S2, W2,  1);
-	RNDr_256(S2, W2,  2);
-	RNDr_256(S2, W2,  3);
-	RNDr_256(S2, W2,  4);
-	RNDr_256(S2, W2,  5);
-	RNDr_256(S2, W2,  6);
-	RNDr_256(S2, W2,  7);
-	RNDr_256(S2, W2,  8);
-	RNDr_256(S2, W2,  9);
-	RNDr_256(S2, W2, 10);
-	RNDr_256(S2, W2, 11);
-	RNDr_256(S2, W2, 12);
-	RNDr_256(S2, W2, 13);
-	RNDr_256(S2, W2, 14);
-	RNDr_256(S2, W2, 15);
-	RNDr_256(S2, W2, 16);
-	RNDr_256(S2, W2, 17);
-	RNDr_256(S2, W2, 18);
-	RNDr_256(S2, W2, 19);
-	RNDr_256(S2, W2, 20);
-	RNDr_256(S2, W2, 21);
-	RNDr_256(S2, W2, 22);
-	RNDr_256(S2, W2, 23);
-	RNDr_256(S2, W2, 24);
-	RNDr_256(S2, W2, 25);
-	RNDr_256(S2, W2, 26);
-	RNDr_256(S2, W2, 27);
-	RNDr_256(S2, W2, 28);
-	RNDr_256(S2, W2, 29);
-	RNDr_256(S2, W2, 30);
-	RNDr_256(S2, W2, 31);
-	RNDr_256(S2, W2, 32);
-	RNDr_256(S2, W2, 33);
-	RNDr_256(S2, W2, 34);
-	RNDr_256(S2, W2, 35);
-	RNDr_256(S2, W2, 36);
-	RNDr_256(S2, W2, 37);
-	RNDr_256(S2, W2, 38);
-	RNDr_256(S2, W2, 39);
-	RNDr_256(S2, W2, 40);
-	RNDr_256(S2, W2, 41);
-	RNDr_256(S2, W2, 42);
-	RNDr_256(S2, W2, 43);
-	RNDr_256(S2, W2, 44);
-	RNDr_256(S2, W2, 45);
-	RNDr_256(S2, W2, 46);
-	RNDr_256(S2, W2, 47);
-	RNDr_256(S2, W2, 48);
-	RNDr_256(S2, W2, 49);
-	RNDr_256(S2, W2, 50);
-	RNDr_256(S2, W2, 51);
-	RNDr_256(S2, W2, 52);
-	RNDr_256(S2, W2, 53);
-	RNDr_256(S2, W2, 54);
-	RNDr_256(S2, W2, 55);
-	RNDr_256(S2, W2, 56);
-	RNDr_256(S2, W2, 57);
-	RNDr_256(S2, W2, 58);
-	RNDr_256(S2, W2, 59);
-	RNDr_256(S2, W2, 60);
-	RNDr_256(S2, W2, 61);
-	RNDr_256(S2, W2, 62);
-	RNDr_256(S2, W2, 63);
-
-
-	for (i = 0; i < 8; i++)
-		S[i] = _mm256_add_epi32(S[i], S2[i]);
-
-
 	memcpy(W + 18, S + 18, sizeof(uint32_t) * 8 * 14);
 
 
@@ -1134,10 +883,10 @@ static inline void sha256d_vips_ms_8way(__m256i *hash, __m256i *W,
 	RNDr_256(hash, S, 55);
 	RNDr_256(hash, S, 56);
 
-	hash[2] = _mm256_add_epi32(_mm256_add_epi32(_mm256_add_epi32(_mm256_add_epi32(_mm256_add_epi32(hash[2], hash[6]), S1_256(hash[3])), Ch_256(hash[3], hash[4], hash[5])), S[57]), sha256_k_256[57]);
-	hash[1] = _mm256_add_epi32(_mm256_add_epi32(_mm256_add_epi32(_mm256_add_epi32(_mm256_add_epi32(hash[1], hash[5]), S1_256(hash[2])), Ch_256(hash[2], hash[3], hash[4])), S[58]), sha256_k_256[58]);
-	hash[0] = _mm256_add_epi32(_mm256_add_epi32(_mm256_add_epi32(_mm256_add_epi32(_mm256_add_epi32(hash[0], hash[4]), S1_256(hash[1])), Ch_256(hash[1], hash[2], hash[3])), S[59]), sha256_k_256[59]);
-	hash[7] = _mm256_add_epi32(_mm256_add_epi32(_mm256_add_epi32(_mm256_add_epi32(_mm256_add_epi32(_mm256_add_epi32(hash[7], hash[3]), S1_256(hash[0])), Ch_256(hash[0], hash[1], hash[2])), S[60]), sha256_k_256[60]), sha256_h_256[7]);
+	hash[2] = _mm256_add_epi32(_mm256_add_epi32(_mm256_add_epi32(_mm256_add_epi32(_mm256_add_epi32(hash[2], hash[6]), Ch_256(hash[3], hash[4], hash[5])), S[57]), sha256_k_256[57]);
+	hash[1] = _mm256_add_epi32(_mm256_add_epi32(_mm256_add_epi32(_mm256_add_epi32(_mm256_add_epi32(hash[1], hash[5]), Ch_256(hash[2], hash[3], hash[4])), S[58]), sha256_k_256[58]);
+	hash[0] = _mm256_add_epi32(_mm256_add_epi32(_mm256_add_epi32(_mm256_add_epi32(_mm256_add_epi32(hash[0], hash[4]), Ch_256(hash[1], hash[2], hash[3])), S[59]), sha256_k_256[59]);
+	hash[7] = _mm256_add_epi32(_mm256_add_epi32(_mm256_add_epi32(_mm256_add_epi32(_mm256_add_epi32(_mm256_add_epi32(hash[7], hash[3]), Ch_256(hash[0], hash[1], hash[2])), S[60]), sha256_k_256[60]), sha256_h_256[7]);
 }
 #endif /* __AVX2__ */
 
